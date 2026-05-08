@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<!-- mission_tree.xml -->
+<!-- BehaviorTree.CPP v4 mission tree for exploration coordination -->
+
+<root main_tree_to_execute="ExplorationMission">
+  
+  <BehaviorTree ID="ExplorationMission">
+    <Sequence name="MainSequence">
+      
+      <!-- Repeat exploration until coverage threshold met -->
+      <RepeatUntilSuccessful num_cycles="100" name="ExplorationLoop">
+        <Sequence name="ExplorationCycle">
+          
+          <!-- Check if map coverage is sufficient -->
+          <Inverter name="InvertCoverageCheck">
+            <MapCoverageCheck coverage_threshold="0.95" name="CheckCoverage"/>
+          </Inverter>
+          
+          <!-- Detect frontiers -->
+          <FrontierDetectorBT name="DetectFrontiers" frontier_count="{frontier_count}"/>
+          
+          <!-- Run Vickrey auction for task allocation -->
+          <RunAuctionBT name="RunAuction" 
+                        frontier_count="{frontier_count}"
+                        assigned_frontier="{assigned_frontier}"/>
+          
+          <!-- Navigate to assigned frontier -->
+          <Fallback name="NavigateToFrontier">
+            <Sequence name="NavigationSequence">
+              
+              <!-- TODO: Call Nav2 action to navigate to frontier -->
+              <AlwaysSuccess name="NavigateAction"/>
+              
+              <!-- Wait for navigation to complete -->
+              <AlwaysSuccess name="WaitForNavigation"/>
+              
+            </Sequence>
+            
+            <!-- If navigation fails, continue to next cycle -->
+            <AlwaysSuccess name="ContinueOnFailure"/>
+          </Fallback>
+          
+          <!-- Small delay before next cycle -->
+          <Delay delay_msec="1000" name="CycleDelay">
+            <AlwaysSuccess/>
+          </Delay>
+          
+        </Sequence>
+      </RepeatUntilSuccessful>
+      
+      <!-- Mission complete -->
+      <AlwaysSuccess name="MissionComplete"/>
+      
+    </Sequence>
+  </BehaviorTree>
+  
+</root>

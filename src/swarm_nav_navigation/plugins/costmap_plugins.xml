@@ -1,0 +1,5 @@
+<library path="dynamic_obstacle_layer">
+  <class type="swarm_nav_navigation::DynamicObstacleLayer" base_class_type="nav2_costmap_2d::Layer">
+    <description>Dynamic obstacle layer for Nav2 costmap that inflates obstacles based on velocity predictions</description>
+  </class>
+</library>

@@ -13,9 +13,9 @@ description: "Task list for SwarmNav-Sim implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create ROS 2 workspace structure for `swarm_nav_sim`
-- [ ] T002 Initialize `swarm_nav_bringup`, `swarm_nav_slam`, `swarm_nav_navigation`, `swarm_nav_coordination`, `swarm_nav_msgs`, and `swarm_nav_evaluation` packages
-- [ ] T003 Create `warehouse_world.launch.py` and URDF for robot models in `swarm_nav_bringup/launch/`
+- [X] T001 Create ROS 2 workspace structure for `swarm_nav_sim`
+- [X] T002 Initialize `swarm_nav_bringup`, `swarm_nav_slam`, `swarm_nav_navigation`, `swarm_nav_coordination`, `swarm_nav_msgs`, and `swarm_nav_evaluation` packages
+- [X] T003 Create `warehouse_world.launch.py` and URDF for robot models in `swarm_nav_bringup/launch/`
 
 ---
 
@@ -25,11 +25,11 @@ description: "Task list for SwarmNav-Sim implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Create `Frontier.msg` and `FrontierArray.msg` in `swarm_nav_msgs/msg/`
-- [ ] T005 [P] Create `Obstacle.msg` and `ObstacleArray.msg` in `swarm_nav_msgs/msg/`
-- [ ] T006 [P] Create `NeighborState.msg` and `NeighborStateArray.msg` in `swarm_nav_msgs/msg/`
-- [ ] T007 [P] Create `AuctionAnnounce.msg`, `AuctionBid.msg`, `AuctionResult.msg` in `swarm_nav_msgs/msg/`
-- [ ] T008 Configure ROS 2 Discovery Server rules for inter-robot communication
+- [X] T004 [P] Create `Frontier.msg` and `FrontierArray.msg` in `swarm_nav_msgs/msg/`
+- [X] T005 [P] Create `Obstacle.msg` and `ObstacleArray.msg` in `swarm_nav_msgs/msg/`
+- [X] T006 [P] Create `NeighborState.msg` and `NeighborStateArray.msg` in `swarm_nav_msgs/msg/`
+- [X] T007 [P] Create `AuctionAnnounce.msg`, `AuctionBid.msg`, `AuctionResult.msg` in `swarm_nav_msgs/msg/`
+- [X] T008 Configure ROS 2 Discovery Server rules for inter-robot communication
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -43,9 +43,9 @@ description: "Task list for SwarmNav-Sim implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Configure `mrg_slam_multirobot.yaml` in `swarm_nav_bringup/config/`
-- [ ] T010 [US1] Create `graph_merge_node.cpp` in `swarm_nav_slam/src/` to handle pose graph exchange and optimization
-- [ ] T011 [US1] Integrate `mrg_slam` and graph merge nodes into `swarm.launch.py` for each namespace
+- [X] T009 [P] [US1] Configure `mrg_slam_multirobot.yaml` in `swarm_nav_bringup/config/`
+- [X] T010 [US1] Create `graph_merge_node.cpp` in `swarm_nav_slam/src/` to handle pose graph exchange and optimization
+- [X] T011 [US1] Integrate `mrg_slam` and graph merge nodes into `swarm.launch.py` for each namespace
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -59,12 +59,12 @@ description: "Task list for SwarmNav-Sim implementation"
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Implement `frontier_detector_node.cpp` in `swarm_nav_coordination/src/`
-- [ ] T013 [P] [US2] Implement `auctioneer_node.cpp` (Vickrey logic) in `swarm_nav_coordination/src/`
-- [ ] T014 [P] [US2] Implement `map_coverage_check.cpp` BT node in `swarm_nav_coordination/src/bt_nodes/`
-- [ ] T015 [P] [US2] Implement `frontier_detector_bt.cpp` and `run_auction_bt.cpp` BT nodes
-- [ ] T016 [US2] Create `mission_tree.xml` in `swarm_nav_bringup/config/behavior_trees/` using BT.CPP v4
-- [ ] T017 [US2] Integrate coordination nodes into `swarm.launch.py`
+- [X] T012 [P] [US2] Implement `frontier_detector_node.cpp` in `swarm_nav_coordination/src/`
+- [X] T013 [P] [US2] Implement `auctioneer_node.cpp` (Vickrey logic) in `swarm_nav_coordination/src/`
+- [X] T014 [P] [US2] Implement `map_coverage_check.cpp` BT node in `swarm_nav_coordination/src/bt_nodes/`
+- [X] T015 [P] [US2] Implement `frontier_detector_bt.cpp` and `run_auction_bt.cpp` BT nodes
+- [X] T016 [US2] Create `mission_tree.xml` in `swarm_nav_bringup/config/behavior_trees/` using BT.CPP v4
+- [X] T017 [US2] Integrate coordination nodes into `swarm.launch.py`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -78,11 +78,11 @@ description: "Task list for SwarmNav-Sim implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T018 [P] [US3] Implement `dynamic_obstacle_layer.hpp` and `dynamic_obstacle_layer.cpp` in `swarm_nav_navigation/plugins/`
-- [ ] T019 [P] [US3] Implement `obstacle_tracker_node.cpp` in `swarm_nav_navigation/src/` to broadcast NPC tracks
-- [ ] T020 [US3] Configure `robot_X_nav2.yaml` and `teb_local_planner.yaml` in `swarm_nav_bringup/config/`
-- [ ] T021 [P] [US3] Implement `orca_velocity_filter_node.cpp` using RVO2-ROS2 in `swarm_nav_navigation/src/`
-- [ ] T022 [US3] Integrate Nav2, TEB, and ORCA filter nodes into `swarm.launch.py`
+- [X] T018 [P] [US3] Implement `dynamic_obstacle_layer.hpp` and `dynamic_obstacle_layer.cpp` in `swarm_nav_navigation/plugins/`
+- [X] T019 [P] [US3] Implement `obstacle_tracker_node.cpp` in `swarm_nav_navigation/src/` to broadcast NPC tracks
+- [X] T020 [US3] Configure `robot_X_nav2.yaml` and `teb_local_planner.yaml` in `swarm_nav_bringup/config/`
+- [X] T021 [P] [US3] Implement `orca_velocity_filter_node.cpp` using RVO2-ROS2 in `swarm_nav_navigation/src/`
+- [X] T022 [US3] Integrate Nav2, TEB, and ORCA filter nodes into `swarm.launch.py`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -92,11 +92,11 @@ description: "Task list for SwarmNav-Sim implementation"
 
 **Purpose**: Evaluation metrics, debugging scripts, and final integration checks
 
-- [ ] T023 [P] Implement `coverage_evaluator.py` in `swarm_nav_evaluation/scripts/`
-- [ ] T024 [P] Implement `collision_monitor.py` and `slam_metrics.py` in `swarm_nav_evaluation/scripts/`
-- [ ] T025 Create `evaluation.launch.py` in `swarm_nav_evaluation/launch/`
+- [X] T023 [P] Implement `coverage_evaluator.py` in `swarm_nav_evaluation/scripts/`
+- [X] T024 [P] Implement `collision_monitor.py` and `slam_metrics.py` in `swarm_nav_evaluation/scripts/`
+- [X] T025 Create `evaluation.launch.py` in `swarm_nav_evaluation/launch/`
 - [ ] T026 Execute 10 benchmark test runs and document ATE/collision performance
-- [ ] T027 Update `README.md` and `TUNING.md`
+- [X] T027 Update `README.md` and `TUNING.md`
 
 ---
 
