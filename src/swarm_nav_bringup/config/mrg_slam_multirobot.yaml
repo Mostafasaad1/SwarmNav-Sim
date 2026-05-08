@@ -5,18 +5,18 @@
 use_sim_time: true
 
 # SLAM parameters
-registration_method: "FAST_GICP"  # Fast GICP for real-time performance
+registration_method: "FAST_GICP" # Fast GICP for real-time performance
 ndt_resolution: 1.0
 ndt_num_threads: 4
 
 # Keyframe parameters
-keyframe_delta_trans: 1.0  # Minimum translation between keyframes (meters)
-keyframe_delta_angle: 0.5  # Minimum rotation between keyframes (radians)
-keyframe_delta_time: 1.0   # Minimum time between keyframes (seconds)
+keyframe_delta_trans: 1.0 # Minimum translation between keyframes (meters)
+keyframe_delta_angle: 0.5 # Minimum rotation between keyframes (radians)
+keyframe_delta_time: 1.0 # Minimum time between keyframes (seconds)
 
 # Loop closure
 enable_loop_closure: true
-loop_closure_distance_thresh: 10.0  # Maximum distance for loop closure (meters)
+loop_closure_distance_thresh: 10.0 # Maximum distance for loop closure (meters)
 loop_closure_fitness_score_thresh: 0.5
 
 # Graph optimization
@@ -27,8 +27,8 @@ g2o_solver_num_iterations: 512
 enable_multi_robot: true
 robot_id_topic: "/robot_id"
 shared_graph_topic: "/mrg_slam/shared_graph"
-graph_exchange_mode: "on_rendezvous"  # Exchange graphs when robots meet
-rendezvous_distance: 3.0  # Distance threshold for graph exchange (meters)
+graph_exchange_mode: "on_rendezvous" # Exchange graphs when robots meet
+rendezvous_distance: 3.0 # Distance threshold for graph exchange (meters)
 
 # Map publishing
 publish_tf: true
@@ -37,7 +37,7 @@ odom_frame_id: "odom"
 base_frame_id: "base_footprint"
 
 # Point cloud filtering
-downsample_resolution: 0.1  # Voxel grid filter resolution
+downsample_resolution: 0.1 # Voxel grid filter resolution
 outlier_removal_radius: 0.5
 outlier_removal_min_neighbors: 5
 
@@ -47,4 +47,4 @@ transformation_epsilon: 0.01
 max_correspondence_distance: 2.0
 
 # Map update
-map_publish_period: 1.0  # Publish map every 1 second
+map_publish_period: 1.0 # Publish map every 1 second
