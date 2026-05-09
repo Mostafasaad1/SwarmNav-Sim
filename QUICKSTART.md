@@ -27,7 +27,7 @@ ls src/swarm_nav_*/
 # This installs:
 # - Nav2 navigation stack
 # - BehaviorTree.CPP v4
-# - Gazebo Fortress simulator
+# - Ignition Gazebo (Fortress) simulator
 # - Python packages (numpy, scipy)
 ```
 
@@ -55,18 +55,14 @@ source install/setup.zsh  # or setup.bash
 ## Step 3: Launch the System
 
 ```bash
-# Launch with 3 robots in Gazebo warehouse
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  num_robots:=3 \
-  use_rviz:=true
+# Launch Ignition Gazebo with warehouse world
+ros2 launch swarm_nav_bringup ignition.launch.py
 ```
 
 **What you'll see:**
-1. Gazebo window opens with warehouse environment
-2. 3 robots spawn at starting positions
-3. RViz window opens showing maps and robot states
-4. Terminal shows node startup logs
+1. Ignition Gazebo window opens with warehouse environment
+2. Empty warehouse with walls and obstacles
+3. Terminal shows Ignition Gazebo startup logs
 
 **Estimated time**: 30 seconds to start
 
@@ -152,9 +148,9 @@ Press `Ctrl+C` in the launch terminal to gracefully shut down all nodes.
 
 ## Troubleshooting
 
-### Problem: "package 'ros_gz_sim' not found"
+### Problem: "ign command not found"
 
-**Solution**: Gazebo not installed. Run:
+**Solution**: Ignition Gazebo not installed. Run:
 ```bash
 ./setup_dependencies.sh
 ```
@@ -176,22 +172,19 @@ ros2 topic echo /robot_0/frontiers
 ros2 node list | grep controller
 ```
 
-### Problem: Gazebo crashes
+### Problem: Ignition Gazebo crashes
 
 **Solution**: Kill existing instances and restart:
 ```bash
-killall gz
-ros2 launch swarm_nav_bringup swarm.launch.py simulator:=gazebo num_robots:=3
+killall ign
+ros2 launch swarm_nav_bringup ignition.launch.py
 ```
 
 ### Problem: High CPU usage
 
-**Solution**: Reduce robots or disable visualization:
+**Solution**: Run in headless mode:
 ```bash
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  num_robots:=2 \
-  use_rviz:=false
+ros2 launch swarm_nav_bringup ignition.launch.py gui:=false
 ```
 
 ---
@@ -201,20 +194,14 @@ ros2 launch swarm_nav_bringup swarm.launch.py \
 ### Try Different Configurations
 
 ```bash
-# 5 robots (maximum)
-ros2 launch swarm_nav_bringup swarm.launch.py simulator:=gazebo num_robots:=5
+# Launch with GUI (default)
+ros2 launch swarm_nav_bringup ignition.launch.py
 
 # Headless mode (no GUI, faster)
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  num_robots:=3 \
-  use_rviz:=false \
-  gui:=false
+ros2 launch swarm_nav_bringup ignition.launch.py gui:=false
 
-# Different world (create your own in src/swarm_nav_bringup/worlds/)
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  world_file:=/path/to/custom.world
+# Verbose output for debugging
+ros2 launch swarm_nav_bringup ignition.launch.py verbose:=true
 ```
 
 ### Run Tests
@@ -255,7 +242,7 @@ colcon build
 source install/setup.zsh
 
 # Launch
-ros2 launch swarm_nav_bringup swarm.launch.py simulator:=gazebo num_robots:=3
+ros2 launch swarm_nav_bringup ignition.launch.py
 
 # Test
 colcon test && colcon test-result --verbose

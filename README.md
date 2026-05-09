@@ -28,7 +28,7 @@ For detailed architecture diagrams and data flow, see [ARCHITECTURE.md](ARCHITEC
 - colcon build tool
 
 **Optional** (for full functionality):
-- NVIDIA Isaac Sim 5.0 or Gazebo Harmonic (for simulation)
+- Ignition Gazebo (Fortress) or NVIDIA Isaac Sim 5.0 (for simulation)
 - BehaviorTree.CPP v4 (for BT nodes)
 - Nav2 (for costmap plugin)
 
@@ -55,19 +55,15 @@ source install/setup.bash  # or setup.zsh
 ### Launch
 
 ```bash
-# Launch full system with 3 robots in Gazebo
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  num_robots:=3 \
-  use_rviz:=true
+# Launch Ignition Gazebo with warehouse world
+ros2 launch swarm_nav_bringup ignition.launch.py
 ```
 
 **What happens:**
-- Gazebo opens with warehouse environment
-- 3 robots spawn and begin autonomous exploration
-- RViz shows real-time maps, paths, and frontiers
-- Robots coordinate via auction-based task allocation
-- ORCA collision avoidance ensures safe navigation
+- Ignition Gazebo opens with warehouse environment
+- Warehouse with walls and obstacles loads
+- Physics simulation starts
+- Ready for robot spawning (when nodes are fixed)
 
 ### Testing
 

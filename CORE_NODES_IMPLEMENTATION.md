@@ -316,7 +316,7 @@ colcon build --symlink-install
 ```
 
 ### 2. Simulator Integration
-- Connect to NVIDIA Isaac Sim 5.0 or Gazebo Harmonic
+- Connect to NVIDIA Isaac Sim 5.0 or Ignition Gazebo (Fortress)
 - Add sensor plugins (LiDAR, odometry)
 - Configure Nav2 lifecycle manager
 - Add actual SLAM package (mrg_slam or similar)

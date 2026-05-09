@@ -42,7 +42,7 @@ for arg in "$@"; do
             echo "This script installs optional dependencies for SwarmNav-Sim:"
             echo "  - BehaviorTree.CPP v4"
             echo "  - Nav2 navigation stack"
-            echo "  - Gazebo Fortress (unless --no-sim)"
+            echo "  - Ignition Gazebo (Fortress) (unless --no-sim)"
             echo "  - ROS 2 package dependencies via rosdep"
             exit 0
             ;;
@@ -124,12 +124,13 @@ else
 fi
 echo ""
 
-# Install Gazebo Fortress
+# Install Gazebo Ignition (Fortress)
 if [ "$NO_SIM" = true ]; then
-    echo -e "${GREEN}[4/5]${NC} Skipping Gazebo Fortress (--no-sim flag)"
+    echo -e "${GREEN}[4/5]${NC} Skipping Gazebo (--no-sim flag)"
 else
-    echo -e "${GREEN}[4/5]${NC} Installing Gazebo Fortress..."
+    echo -e "${GREEN}[4/5]${NC} Installing Gazebo Ignition (Fortress)..."
     GAZEBO_PACKAGES=(
+        "ignition-fortress"
         "ros-humble-ros-gz"
         "ros-humble-ros-gz-bridge"
         "ros-humble-ros-gz-sim"
@@ -148,7 +149,7 @@ else
         echo "Installing ${#GAZEBO_MISSING[@]} Gazebo packages..."
         run_cmd sudo apt-get update
         run_cmd sudo apt-get install -y "${GAZEBO_MISSING[@]}"
-        echo -e "${GREEN}✓${NC} Gazebo Fortress installed"
+        echo -e "${GREEN}✓${NC} Gazebo Ignition (Fortress) installed"
     fi
 fi
 echo ""

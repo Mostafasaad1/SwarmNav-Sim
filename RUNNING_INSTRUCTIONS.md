@@ -30,7 +30,7 @@ The project includes an automated dependency installation script:
 **What gets installed:**
 - ROS 2 Humble packages (nav2, slam_toolbox, etc.)
 - BehaviorTree.CPP v4
-- Gazebo Fortress (unless `--no-sim` is used)
+- Ignition Gazebo (Fortress) (unless `--no-sim` is used)
 - Python dependencies (numpy, scipy, etc.)
 
 ---
@@ -72,57 +72,36 @@ source install/setup.bash
 
 ## Running the System
 
-### Option 1: Full System with Gazebo Simulator (Recommended)
+### Option 1: Ignition Gazebo Simulator
 
-Launch the complete multi-robot system with 3D visualization:
+Launch Ignition Gazebo with the warehouse world:
 
 ```bash
 # Source the workspace first
 source install/setup.zsh
 
-# Launch with 3 robots (default)
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  num_robots:=3 \
-  use_rviz:=true
+# Launch Ignition Gazebo with GUI (default)
+ros2 launch swarm_nav_bringup ignition.launch.py
 
-# Launch with 5 robots
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  num_robots:=5 \
-  use_rviz:=true
+# Launch without GUI (headless)
+ros2 launch swarm_nav_bringup ignition.launch.py gui:=false
 
-# Launch without RViz (headless)
-ros2 launch swarm_nav_bringup swarm.launch.py \
-  simulator:=gazebo \
-  num_robots:=3 \
-  use_rviz:=false
+# Launch with verbose output
+ros2 launch swarm_nav_bringup ignition.launch.py verbose:=true
 ```
 
 **What this launches:**
-- Gazebo Fortress with warehouse world
-- 3-5 robots with differential drive and lidar
-- SLAM nodes for each robot (graph-based SLAM with loop closure)
-- Navigation stack (Nav2) for each robot
-- Frontier detection and task allocation (auction-based)
-- ORCA collision avoidance
-- RViz2 for visualization
+- Ignition Gazebo (Fortress) with warehouse world
+- Physics simulation with walls and obstacles
+- 3D visualization (if gui:=true)
+- Ready for robot spawning
 
-### Option 2: Gazebo Only (For Testing)
+### Option 2: Development Mode (No Simulator)
 
-Launch just the simulator without navigation:
+For testing without 3D simulation:
 
 ```bash
-ros2 launch swarm_nav_bringup gazebo.launch.py \
-  num_robots:=3 \
-  gui:=true
-```
-
-### Option 3: Without Simulator (Development/Testing)
-
-For testing coordination and navigation logic without 3D simulation:
-
-```bash
+# Launch without simulator
 ros2 launch swarm_nav_bringup swarm.launch.py \
   simulator:=none \
   num_robots:=3
@@ -183,7 +162,7 @@ colcon test-result --verbose --packages-select swarm_nav_slam
 
 ### Run Integration Tests
 
-**Note**: Integration tests require Gazebo to be installed and running.
+**Note**: Integration tests require Ignition Gazebo to be installed and running.
 
 ```bash
 # Run integration tests
@@ -299,7 +278,7 @@ source install/setup.zsh
 
 ### Issue: "package 'ros_gz_sim' not found"
 
-**Solution**: Install Gazebo dependencies:
+**Solution**: Install Ignition Gazebo dependencies:
 ```bash
 ./setup_dependencies.sh
 ```
@@ -333,10 +312,9 @@ ros2 topic echo /robot_0/behavior_tree_log
 ### Issue: High CPU usage
 
 **Solutions:**
-1. Reduce number of robots: `num_robots:=2`
-2. Disable RViz: `use_rviz:=false`
-3. Reduce Gazebo GUI quality in Gazebo settings
-4. Run headless: `gui:=false` in gazebo.launch.py
+1. Run headless mode: `ros2 launch swarm_nav_bringup ignition.launch.py gui:=false`
+2. Reduce Ignition Gazebo rendering quality in GUI settings
+3. Close other applications
 
 ---
 

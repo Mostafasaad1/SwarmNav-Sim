@@ -184,7 +184,7 @@ src/
 ## Next Steps
 
 1. **Simulator Integration**
-   - Integrate with Isaac Sim 5.0 or Gazebo Harmonic
+   - Integrate with Isaac Sim 5.0 or Ignition Gazebo (Fortress)
    - Add actual mrg_slam package dependency
    - Configure Nav2 lifecycle manager
    - Add sensor plugins (LiDAR, odometry)
@@ -212,7 +212,7 @@ src/
 **External Dependencies**
 - mrg_slam (multi-robot graph SLAM)
 - RVO2-ROS2 (ORCA collision avoidance)
-- NVIDIA Isaac Sim 5.0 or Gazebo Harmonic
+- NVIDIA Isaac Sim 5.0 or Ignition Gazebo (Fortress)
 
 ## Build Instructions
 
