@@ -17,7 +17,7 @@
 namespace swarm_nav_coordination
 {
 
-struct Frontier
+struct FrontierData
 {
   geometry_msgs::msg::Point centroid;
   float size;
@@ -68,8 +68,11 @@ private:
   {
     RCLCPP_DEBUG(this->get_logger(), "Received map update");
     
+    // Store latest map for utility calculation
+    latest_map_ = map;
+    
     // Detect frontiers using wavefront algorithm
-    std::vector<Frontier> frontiers = detectFrontiers(map);
+    std::vector<FrontierData> frontiers = detectFrontiers(map);
     
     RCLCPP_INFO(this->get_logger(), "Detected %zu frontiers", frontiers.size());
     
@@ -80,9 +83,9 @@ private:
     publishMarkers(frontiers);
   }
   
-  std::vector<Frontier> detectFrontiers(const nav_msgs::msg::OccupancyGrid::SharedPtr map)
+  std::vector<FrontierData> detectFrontiers(const nav_msgs::msg::OccupancyGrid::SharedPtr map)
   {
-    std::vector<Frontier> frontiers;
+    std::vector<FrontierData> frontiers;
     
     int width = map->info.width;
     int height = map->info.height;
@@ -102,7 +105,7 @@ private:
         // Check if this is a frontier cell
         if (isFrontierCell(map, x, y)) {
           // Perform BFS to find connected frontier region
-          Frontier frontier = extractFrontier(map, x, y, visited);
+          FrontierData frontier = extractFrontier(map, x, y, visited);
           
           // Only keep frontiers above minimum size
           if (frontier.size >= min_frontier_size_) {
@@ -147,11 +150,11 @@ private:
     return false;
   }
   
-  Frontier extractFrontier(const nav_msgs::msg::OccupancyGrid::SharedPtr map, 
+  FrontierData extractFrontier(const nav_msgs::msg::OccupancyGrid::SharedPtr map, 
                           int start_x, int start_y, 
                           std::vector<bool>& visited)
   {
-    Frontier frontier;
+    FrontierData frontier;
     std::queue<std::pair<int, int>> queue;
     std::vector<std::pair<int, int>> cells;
     
@@ -198,11 +201,54 @@ private:
     return frontier;
   }
   
-  float calculateUtility(const Frontier& frontier)
+  float calculateUtility(const FrontierData& frontier)
   {
-    // Simple utility: proportional to frontier size
-    // More sophisticated: consider distance, information gain, etc.
-    return frontier.size;
+    // Spec formula: utility = size * 0.1 + info_gain * 0.5
+    // info_gain = count of unknown cells within 3m radius of centroid
+    
+    float size_component = frontier.size * 0.1f;
+    float info_gain = 0.0f;
+    
+    if (latest_map_) {
+      // Calculate information gain: count unknown cells within 3m radius
+      float radius = 3.0f; // meters
+      float resolution = latest_map_->info.resolution;
+      auto origin = latest_map_->info.origin.position;
+      int width = latest_map_->info.width;
+      int height = latest_map_->info.height;
+      
+      // Convert centroid to grid coordinates
+      int center_x = static_cast<int>((frontier.centroid.x - origin.x) / resolution);
+      int center_y = static_cast<int>((frontier.centroid.y - origin.y) / resolution);
+      
+      // Search within radius
+      int radius_cells = static_cast<int>(radius / resolution);
+      int unknown_count = 0;
+      
+      for (int dy = -radius_cells; dy <= radius_cells; ++dy) {
+        for (int dx = -radius_cells; dx <= radius_cells; ++dx) {
+          // Check if within circular radius
+          float dist = std::sqrt(dx * dx + dy * dy) * resolution;
+          if (dist > radius) continue;
+          
+          int x = center_x + dx;
+          int y = center_y + dy;
+          
+          // Check bounds
+          if (x >= 0 && x < width && y >= 0 && y < height) {
+            int idx = y * width + x;
+            if (latest_map_->data[idx] == -1) {
+              unknown_count++;
+            }
+          }
+        }
+      }
+      
+      info_gain = static_cast<float>(unknown_count);
+    }
+    
+    float utility = size_component + info_gain * 0.5f;
+    return utility;
   }
   
   std::string generateFrontierId()
@@ -211,7 +257,7 @@ private:
     return robot_id_ + "_frontier_" + std::to_string(counter++);
   }
   
-  void publishFrontiers(const std::vector<Frontier>& frontiers)
+  void publishFrontiers(const std::vector<FrontierData>& frontiers)
   {
     swarm_nav_msgs::msg::FrontierArray frontier_array;
     frontier_array.header.stamp = this->now();
@@ -231,7 +277,7 @@ private:
     RCLCPP_DEBUG(this->get_logger(), "Published %zu frontiers", frontiers.size());
   }
   
-  void publishMarkers(const std::vector<Frontier>& frontiers)
+  void publishMarkers(const std::vector<FrontierData>& frontiers)
   {
     visualization_msgs::msg::MarkerArray marker_array;
     
@@ -266,6 +312,8 @@ private:
   std::string robot_id_;
   int min_frontier_size_;
   double frontier_travel_distance_;
+  
+  nav_msgs::msg::OccupancyGrid::SharedPtr latest_map_;
   
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
   rclcpp::Publisher<swarm_nav_msgs::msg::FrontierArray>::SharedPtr frontier_pub_;

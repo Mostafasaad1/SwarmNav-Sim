@@ -14,8 +14,7 @@
 #include <string>
 #include <mutex>
 
-// Forward declare custom message
-// #include "swarm_nav_msgs/msg/obstacle_array.hpp"
+#include "swarm_nav_msgs/msg/obstacle_array.hpp"
 
 namespace swarm_nav_navigation
 {
@@ -27,6 +26,7 @@ struct DynamicObstacle
   geometry_msgs::msg::Twist velocity;
   float radius;
   uint8_t classification;
+  rclcpp::Time last_seen;
 };
 
 class DynamicObstacleLayer : public nav2_costmap_2d::Layer
@@ -53,7 +53,14 @@ private:
   void inflateObstacle(
     nav2_costmap_2d::Costmap2D & master_grid,
     const DynamicObstacle& obstacle,
-    double prediction_time);
+    double prediction_time,
+    double decay_factor);
+  
+  void inflatePoint(
+    nav2_costmap_2d::Costmap2D & master_grid,
+    double world_x, double world_y,
+    double obstacle_radius,
+    double decay_factor);
 
   rclcpp::Subscription<rclcpp::SerializedMessage>::SharedPtr obstacle_sub_;
   
@@ -63,6 +70,7 @@ private:
   // Parameters
   double inflation_radius_;
   double prediction_time_;
+  double robot_radius_;
   bool enabled_;
 };
 

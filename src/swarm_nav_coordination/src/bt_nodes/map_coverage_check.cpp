@@ -2,8 +2,8 @@
 // BehaviorTree node to check if map coverage is sufficient
 
 #include <rclcpp/rclcpp.hpp>
-#include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
+#include <behaviortree_cpp/behavior_tree.h>
+#include <behaviortree_cpp/bt_factory.h>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 
 namespace swarm_nav_coordination

@@ -15,7 +15,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(swarm_nav_msgs REQUIRED)
 
 # Optional: BehaviorTree.CPP for BT nodes
-find_package(behaviortree_cpp_v3 QUIET)
+find_package(behaviortree_cpp QUIET)
 
 # Include directories
 include_directories(include)
@@ -42,8 +42,8 @@ ament_target_dependencies(auctioneer_node
 )
 
 # BehaviorTree nodes as shared library (only if BT.CPP is available)
-if(behaviortree_cpp_v3_FOUND)
-  message(STATUS "BehaviorTree.CPP v3 found, building BT nodes")
+if(behaviortree_cpp_FOUND)
+  message(STATUS "BehaviorTree.CPP v4 found, building BT nodes")
   
   add_library(swarm_bt_nodes SHARED
     src/bt_nodes/map_coverage_check.cpp
@@ -55,7 +55,8 @@ if(behaviortree_cpp_v3_FOUND)
     std_msgs
     geometry_msgs
     nav_msgs
-    behaviortree_cpp_v3
+    swarm_nav_msgs
+    behaviortree_cpp
   )
   
   # Install BT plugin library
@@ -66,7 +67,7 @@ if(behaviortree_cpp_v3_FOUND)
     RUNTIME DESTINATION bin
   )
 else()
-  message(WARNING "BehaviorTree.CPP v3 not found, skipping BT nodes")
+  message(WARNING "BehaviorTree.CPP v4 not found, skipping BT nodes")
 endif()
 
 # Install executables

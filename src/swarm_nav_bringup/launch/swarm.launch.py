@@ -8,12 +8,14 @@ Launches all robots with SLAM, navigation, and coordination nodes
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    OpaqueFunction,
+)
 from launch.conditions import IfCondition
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, PushRosNamespace
-from launch_ros.substitutions import FindPackageShare
 
 
 def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
@@ -79,7 +81,8 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             parameters=[{
                 'use_sim_time': True,
                 'robot_id': robot_namespace,
-                'bid_timeout_ms': 500
+                'bid_timeout_ms': 500,
+                'nominal_speed': 0.5
             }],
             output='screen'
         ),
@@ -94,7 +97,9 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                 'robot_id': robot_namespace,
                 'robot_radius': 0.25,
                 'max_neighbors': 10,
-                'time_horizon': 2.0
+                'time_horizon': 2.0,
+                'max_linear_velocity': 0.5,
+                'max_angular_velocity': 1.0
             }],
             output='screen'
         ),
@@ -107,6 +112,29 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
     return robot_group
 
 
+def launch_robots(context, *args, **kwargs):
+    """OpaqueFunction: dynamically reads num_robots and spawns robot groups."""
+    
+    num_robots = int(LaunchConfiguration('num_robots').perform(context))
+    num_robots = max(1, min(5, num_robots))  # Clamp to [1, 5]
+    
+    # Robot positions in warehouse (40m x 60m)
+    robot_positions = [
+        (0, -15.0, 0.0, 0.0),      # robot_0
+        (-10.0, -15.0, 0.0, 0.0),  # robot_1
+        (10.0, -15.0, 0.0, 0.0),   # robot_2
+        (-5.0, -20.0, 0.0, 0.0),   # robot_3
+        (5.0, -20.0, 0.0, 0.0),    # robot_4
+    ]
+    
+    actions = []
+    for i in range(num_robots):
+        robot_id, x, y, yaw = robot_positions[i]
+        actions.append(generate_robot_launch(i, x, y, yaw))
+    
+    return actions
+
+
 def generate_launch_description():
     """Generate launch description for multi-robot swarm"""
     
@@ -114,7 +142,7 @@ def generate_launch_description():
     num_robots_arg = DeclareLaunchArgument(
         'num_robots',
         default_value='3',
-        description='Number of robots to spawn (3-5)'
+        description='Number of robots to spawn (1-5)'
     )
     
     use_sim_time_arg = DeclareLaunchArgument(
@@ -130,8 +158,6 @@ def generate_launch_description():
     )
     
     # Get launch configurations
-    num_robots = LaunchConfiguration('num_robots')
-    use_sim_time = LaunchConfiguration('use_sim_time')
     use_rviz = LaunchConfiguration('use_rviz')
     
     # Create launch description
@@ -142,30 +168,31 @@ def generate_launch_description():
     ld.add_action(use_sim_time_arg)
     ld.add_action(use_rviz_arg)
     
-    # Spawn robots at different positions
-    # Robot positions in warehouse (40m x 60m)
-    robot_positions = [
-        (0, -15.0, 0.0, 0.0),      # robot_0
-        (-10.0, -15.0, 0.0, 0.0),  # robot_1
-        (10.0, -15.0, 0.0, 0.0),   # robot_2
-        (-5.0, -20.0, 0.0, 0.0),   # robot_3
-        (5.0, -20.0, 0.0, 0.0),    # robot_4
-    ]
+    # Spawn robots dynamically based on num_robots parameter
+    ld.add_action(OpaqueFunction(function=launch_robots))
     
-    # Launch robots (default 3, max 5)
-    for i in range(5):  # Max 5 robots
-        robot_id, x, y, yaw = robot_positions[i]
-        ld.add_action(generate_robot_launch(i, x, y, yaw))
-    
-    # Global map merger node (publishes /swarm/global_map)
+    # Neighbor state aggregator node (collects individual states into array)
     ld.add_action(Node(
-        package='swarm_nav_slam',
-        executable='global_map_merger',
-        name='global_map_merger',
+        package='swarm_nav_navigation',
+        executable='neighbor_state_aggregator_node',
+        name='neighbor_state_aggregator_node',
         parameters=[{
             'use_sim_time': True,
-            'num_robots': num_robots,
-            'global_map_topic': '/swarm/global_map'
+            'publish_rate': 10.0,
+            'state_timeout': 0.5
+        }],
+        output='screen'
+    ))
+    
+    # Obstacle tracker node (publishes dynamic obstacles)
+    ld.add_action(Node(
+        package='swarm_nav_navigation',
+        executable='obstacle_tracker_node',
+        name='obstacle_tracker_node',
+        parameters=[{
+            'use_sim_time': True,
+            'publish_rate': 10.0,
+            'obstacle_timeout': 2.0
         }],
         output='screen'
     ))
@@ -189,3 +216,4 @@ def generate_launch_description():
 
 if __name__ == '__main__':
     generate_launch_description()
+

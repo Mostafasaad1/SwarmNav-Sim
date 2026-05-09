@@ -52,6 +52,15 @@ ament_target_dependencies(orca_velocity_filter_node
   swarm_nav_msgs
 )
 
+# Neighbor state aggregator node
+add_executable(neighbor_state_aggregator_node src/neighbor_state_aggregator_node.cpp)
+ament_target_dependencies(neighbor_state_aggregator_node
+  rclcpp
+  std_msgs
+  geometry_msgs
+  swarm_nav_msgs
+)
+
 # Dynamic obstacle layer plugin (only if Nav2 is available)
 if(BUILD_NAV2_PLUGIN)
   add_library(dynamic_obstacle_layer SHARED
@@ -84,6 +93,7 @@ endif()
 install(TARGETS
   obstacle_tracker_node
   orca_velocity_filter_node
+  neighbor_state_aggregator_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

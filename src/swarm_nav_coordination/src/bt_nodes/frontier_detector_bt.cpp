@@ -2,8 +2,9 @@
 // BehaviorTree action node to detect frontiers
 
 #include <rclcpp/rclcpp.hpp>
-#include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
+#include <behaviortree_cpp/behavior_tree.h>
+#include <behaviortree_cpp/bt_factory.h>
+#include "swarm_nav_msgs/msg/frontier_array.hpp"
 
 namespace swarm_nav_coordination
 {
@@ -15,6 +16,19 @@ public:
     : BT::SyncActionNode(name, config)
   {
     node_ = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
+    
+    // Get robot_id from blackboard, fallback to "robot_0"
+    std::string robot_id = "robot_0";
+    config.blackboard->get<std::string>("robot_id", robot_id);
+    
+    // Subscribe to frontiers topic
+    frontier_sub_ = node_->create_subscription<swarm_nav_msgs::msg::FrontierArray>(
+      "frontiers",
+      rclcpp::QoS(10),
+      [this](swarm_nav_msgs::msg::FrontierArray::SharedPtr msg) {
+        latest_frontiers_ = msg;
+      }
+    );
   }
 
   static BT::PortsList providedPorts()
@@ -26,13 +40,14 @@ public:
 
   BT::NodeStatus tick() override
   {
-    // TODO: Trigger frontier detection
-    // For now, simulate detection
+    RCLCPP_INFO(node_->get_logger(), "Checking for frontiers...");
     
-    RCLCPP_INFO(node_->get_logger(), "Detecting frontiers...");
+    // Use real frontier count from subscription
+    int frontier_count = 0;
+    if (latest_frontiers_) {
+      frontier_count = latest_frontiers_->frontiers.size();
+    }
     
-    // Placeholder: assume some frontiers detected
-    int frontier_count = 5;
     setOutput("frontier_count", frontier_count);
     
     if (frontier_count > 0) {
@@ -46,6 +61,8 @@ public:
 
 private:
   rclcpp::Node::SharedPtr node_;
+  rclcpp::Subscription<swarm_nav_msgs::msg::FrontierArray>::SharedPtr frontier_sub_;
+  swarm_nav_msgs::msg::FrontierArray::SharedPtr latest_frontiers_;
 };
 
 } // namespace swarm_nav_coordination

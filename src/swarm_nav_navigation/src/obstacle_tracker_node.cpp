@@ -11,8 +11,8 @@
 #include <map>
 #include <mutex>
 
-// Forward declare custom message
-// #include "swarm_nav_msgs/msg/obstacle_array.hpp"
+#include "swarm_nav_msgs/msg/obstacle_array.hpp"
+#include "swarm_nav_msgs/msg/obstacle.hpp"
 
 namespace swarm_nav_navigation
 {
@@ -49,9 +49,9 @@ public:
     // For Isaac Sim or Gazebo, this would be model states or TF frames
     
     // Publisher for tracked obstacles
-    // obstacle_pub_ = this->create_publisher<swarm_nav_msgs::msg::ObstacleArray>(
-    //   "/swarm/tracked_obstacles", 10
-    // );
+    obstacle_pub_ = this->create_publisher<swarm_nav_msgs::msg::ObstacleArray>(
+      "/swarm/tracked_obstacles", rclcpp::SensorDataQoS()
+    );
     
     // Timer for periodic publishing
     timer_ = this->create_wall_timer(
@@ -121,8 +121,24 @@ private:
       }
     }
     
-    // TODO: Publish ObstacleArray message
-    RCLCPP_DEBUG(this->get_logger(), "Publishing %zu obstacles", obstacles_.size());
+    // Create and publish ObstacleArray message
+    swarm_nav_msgs::msg::ObstacleArray obstacle_array;
+    obstacle_array.header.stamp = now;
+    obstacle_array.header.frame_id = "map";
+    
+    for (const auto& [id, obstacle] : obstacles_) {
+      swarm_nav_msgs::msg::Obstacle obs_msg;
+      obs_msg.id = obstacle.id;
+      obs_msg.pose = obstacle.pose;
+      obs_msg.velocity = obstacle.velocity;
+      obs_msg.radius = obstacle.radius;
+      obs_msg.classification = obstacle.classification;
+      
+      obstacle_array.obstacles.push_back(obs_msg);
+    }
+    
+    obstacle_pub_->publish(obstacle_array);
+    RCLCPP_DEBUG(this->get_logger(), "Published %zu obstacles", obstacles_.size());
     
     // Update test obstacle positions (simple simulation)
     updateTestObstacles();
@@ -155,6 +171,7 @@ private:
   std::map<std::string, TrackedObstacle> obstacles_;
   std::mutex mutex_;
   
+  rclcpp::Publisher<swarm_nav_msgs::msg::ObstacleArray>::SharedPtr obstacle_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

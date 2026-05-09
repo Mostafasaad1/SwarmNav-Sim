@@ -43,8 +43,15 @@ public:
     // Subscribe to neighbor states for rendezvous detection
     neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
       "/swarm/neighbor_states",
-      10,
+      rclcpp::SensorDataQoS(),
       std::bind(&GraphMergeNode::neighborCallback, this, std::placeholders::_1)
+    );
+    
+    // Subscribe to own map
+    own_map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
+      "map",
+      rclcpp::QoS(10).transient_local(),
+      std::bind(&GraphMergeNode::ownMapCallback, this, std::placeholders::_1)
     );
     
     // Publisher for merged global map
@@ -61,6 +68,12 @@ public:
   }
 
 private:
+  void ownMapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+  {
+    std::lock_guard<std::mutex> lock(graph_mutex_);
+    own_map_ = msg;
+  }
+  
   void neighborCallback(const swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(graph_mutex_);
@@ -81,9 +94,27 @@ private:
     // Check for nearby robots
     for (const auto& [neighbor_id, neighbor_pose] : neighbor_poses_) {
       if (isRobotNearby(neighbor_id, neighbor_pose)) {
-        RCLCPP_INFO(this->get_logger(), "Robot %s is nearby (< %.2fm), triggering graph exchange",
+        RCLCPP_INFO(this->get_logger(), "Robot %s is nearby (< %.2fm), triggering graph merge",
                     neighbor_id.c_str(), rendezvous_distance_);
-        mergeGraphs();
+        
+        // Subscribe to neighbor's map if not already subscribed
+        if (neighbor_map_subs_.find(neighbor_id) == neighbor_map_subs_.end()) {
+          std::string neighbor_map_topic = neighbor_id + "/map";
+          neighbor_map_subs_[neighbor_id] = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
+            neighbor_map_topic,
+            rclcpp::QoS(10).transient_local(),
+            [this, neighbor_id](nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+              std::lock_guard<std::mutex> lock(graph_mutex_);
+              neighbor_maps_[neighbor_id] = msg;
+              RCLCPP_INFO(this->get_logger(), "Received map from %s", neighbor_id.c_str());
+            }
+          );
+        }
+        
+        // Attempt to merge if we have both maps
+        if (own_map_ && neighbor_maps_.find(neighbor_id) != neighbor_maps_.end()) {
+          mergeGraphs();
+        }
         break;
       }
     }
@@ -114,17 +145,69 @@ private:
   
   void mergeGraphs()
   {
-    // Placeholder implementation for pose graph merging
-    // In production, this would:
-    // 1. Align coordinate frames using ICP or feature matching
-    // 2. Merge keyframes and edges from neighbor graphs
-    // 3. Run g2o optimization on merged graph
-    // 4. Update local map with optimized poses
+    // Simplified map overlay merging: cell-wise max occupancy
+    if (!own_map_) {
+      RCLCPP_WARN(this->get_logger(), "No own map available for merging");
+      return;
+    }
     
-    RCLCPP_INFO(this->get_logger(), "Merging pose graphs (placeholder implementation)");
+    // Start with own map as base
+    auto merged_map = std::make_shared<nav_msgs::msg::OccupancyGrid>(*own_map_);
+    merged_map->header.stamp = this->now();
+    merged_map->header.frame_id = "map";
     
-    // For now, just log that merge would happen
-    // Actual mrg_slam integration would handle the real graph merging
+    int merge_count = 0;
+    
+    // Merge each neighbor's map
+    for (const auto& [neighbor_id, neighbor_map] : neighbor_maps_) {
+      if (!neighbor_map) continue;
+      
+      RCLCPP_INFO(this->get_logger(), "Merging map from %s", neighbor_id.c_str());
+      
+      // For each cell in neighbor's map, transform to own map frame and merge
+      for (unsigned int ny = 0; ny < neighbor_map->info.height; ++ny) {
+        for (unsigned int nx = 0; nx < neighbor_map->info.width; ++nx) {
+          int n_idx = ny * neighbor_map->info.width + nx;
+          int8_t neighbor_value = neighbor_map->data[n_idx];
+          
+          // Skip unknown cells
+          if (neighbor_value == -1) continue;
+          
+          // Convert neighbor cell to world coordinates
+          double world_x = neighbor_map->info.origin.position.x + 
+                          (nx + 0.5) * neighbor_map->info.resolution;
+          double world_y = neighbor_map->info.origin.position.y + 
+                          (ny + 0.5) * neighbor_map->info.resolution;
+          
+          // TODO: Apply TF transform from neighbor frame to own frame
+          // For now, assume same coordinate frame (simplified)
+          
+          // Convert to own map coordinates
+          int mx = static_cast<int>((world_x - merged_map->info.origin.position.x) / 
+                                    merged_map->info.resolution);
+          int my = static_cast<int>((world_y - merged_map->info.origin.position.y) / 
+                                    merged_map->info.resolution);
+          
+          // Check bounds
+          if (mx >= 0 && mx < static_cast<int>(merged_map->info.width) &&
+              my >= 0 && my < static_cast<int>(merged_map->info.height)) {
+            int m_idx = my * merged_map->info.width + mx;
+            
+            // Cell-wise max occupancy
+            if (merged_map->data[m_idx] == -1) {
+              merged_map->data[m_idx] = neighbor_value;
+            } else {
+              merged_map->data[m_idx] = std::max(merged_map->data[m_idx], neighbor_value);
+            }
+            merge_count++;
+          }
+        }
+      }
+    }
+    
+    // Publish merged global map
+    global_map_pub_->publish(*merged_map);
+    RCLCPP_INFO(this->get_logger(), "Published merged global map with %d cells merged", merge_count);
   }
 
   // Member variables
@@ -141,7 +224,12 @@ private:
   std::map<std::string, geometry_msgs::msg::Pose> neighbor_poses_;
   std::map<std::string, std::vector<geometry_msgs::msg::PoseStamped>> neighbor_graphs_;
   
+  nav_msgs::msg::OccupancyGrid::SharedPtr own_map_;
+  std::map<std::string, nav_msgs::msg::OccupancyGrid::SharedPtr> neighbor_maps_;
+  std::map<std::string, rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr> neighbor_map_subs_;
+  
   rclcpp::Subscription<swarm_nav_msgs::msg::NeighborStateArray>::SharedPtr neighbor_sub_;
+  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr own_map_sub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr global_map_pub_;
 };
 

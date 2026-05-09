@@ -21,8 +21,8 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 **Purpose**: No new packages — verify the existing workspace builds and message generation is intact.
 
-- [ ] T001 Verify `swarm_nav_msgs` builds cleanly with `colcon build --packages-select swarm_nav_msgs` in `src/swarm_nav_msgs/`
-- [ ] T002 Verify all existing packages compile with `colcon build --symlink-install` from workspace root
+- [X] T001 Verify `swarm_nav_msgs` builds cleanly with `colcon build --packages-select swarm_nav_msgs` in `src/swarm_nav_msgs/`
+- [X] T002 Verify all existing packages compile with `colcon build --symlink-install` from workspace root
 
 **Checkpoint**: Baseline compiles without errors — all modifications happen on a known-good foundation.
 
@@ -34,11 +34,11 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 **⚠️ CRITICAL**: All user story work depends on these deadlock fixes being applied first.
 
-- [ ] T003 [P] Remove redundant `std::lock_guard<std::mutex> lock(mutex_)` from `computeOrcaVelocity()` at line ~151 in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
-- [ ] T004 [P] Remove redundant `std::lock_guard<std::mutex> lock(mutex_)` from `calculateBidCost()` at line ~291 in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
-- [ ] T005 [P] Replace `rand()` with deterministic `std::mt19937` seeded from `robot_id_` hash in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
-- [ ] T006 [P] Rename local struct `Frontier` to `FrontierData` in `src/swarm_nav_coordination/src/frontier_detector_node.cpp` to avoid shadowing `swarm_nav_msgs::msg::Frontier`
-- [ ] T007 [P] Rename local struct `NeighborState` to `NeighborData` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp` to avoid shadowing `swarm_nav_msgs::msg::NeighborState`
+- [X] T003 [P] Remove redundant `std::lock_guard<std::mutex> lock(mutex_)` from `computeOrcaVelocity()` at line ~151 in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
+- [X] T004 [P] Remove redundant `std::lock_guard<std::mutex> lock(mutex_)` from `calculateBidCost()` at line ~291 in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
+- [X] T005 [P] Replace `rand()` with deterministic `std::mt19937` seeded from `robot_id_` hash in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
+- [X] T006 [P] Rename local struct `Frontier` to `FrontierData` in `src/swarm_nav_coordination/src/frontier_detector_node.cpp` to avoid shadowing `swarm_nav_msgs::msg::Frontier`
+- [X] T007 [P] Rename local struct `NeighborState` to `NeighborData` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp` to avoid shadowing `swarm_nav_msgs::msg::NeighborState`
 
 **Checkpoint**: Foundation ready — all nodes can start and receive messages without deadlocking.
 
@@ -52,9 +52,9 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Add `#include "swarm_nav_msgs/msg/obstacle_array.hpp"` to `src/swarm_nav_navigation/src/obstacle_tracker_node.cpp`
-- [ ] T009 [US2] Uncomment `obstacle_pub_` publisher declaration and initialization for `/swarm/tracked_obstacles` in `src/swarm_nav_navigation/src/obstacle_tracker_node.cpp`
-- [ ] T010 [US2] Implement `publishObstacles()` to create and publish `ObstacleArray` from the `obstacles_` map in `src/swarm_nav_navigation/src/obstacle_tracker_node.cpp`
+- [X] T008 [US2] Add `#include "swarm_nav_msgs/msg/obstacle_array.hpp"` to `src/swarm_nav_navigation/src/obstacle_tracker_node.cpp`
+- [X] T009 [US2] Uncomment `obstacle_pub_` publisher declaration and initialization for `/swarm/tracked_obstacles` in `src/swarm_nav_navigation/src/obstacle_tracker_node.cpp`
+- [X] T010 [US2] Implement `publishObstacles()` to create and publish `ObstacleArray` from the `obstacles_` map in `src/swarm_nav_navigation/src/obstacle_tracker_node.cpp`
 
 **Checkpoint**: `/swarm/tracked_obstacles` publishes at 10 Hz with 8 test obstacles.
 
@@ -68,10 +68,10 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Implement `calculateUtility()` as `size * 0.1 + info_gain * 0.5` where `info_gain` = count of unknown cells within 3m radius of centroid in `src/swarm_nav_coordination/src/frontier_detector_node.cpp`
-- [ ] T012 [US3] Store latest map pointer as a member and use it in `calculateUtility()` for information gain lookup in `src/swarm_nav_coordination/src/frontier_detector_node.cpp`
-- [ ] T013 [US3] Implement `calculateBidCost()` with formula `distance * 1.0 + travel_time * 0.5 + obstacle_density * 2.0 + task_switch * 0.3` in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
-- [ ] T014 [US3] Add secondary sort by `robot_id` (lexicographically lower wins) for equal-cost bids in `resolveAuction()` in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
+- [X] T011 [US3] Implement `calculateUtility()` as `size * 0.1 + info_gain * 0.5` where `info_gain` = count of unknown cells within 3m radius of centroid in `src/swarm_nav_coordination/src/frontier_detector_node.cpp`
+- [X] T012 [US3] Store latest map pointer as a member and use it in `calculateUtility()` for information gain lookup in `src/swarm_nav_coordination/src/frontier_detector_node.cpp`
+- [X] T013 [US3] Implement `calculateBidCost()` with formula `distance * 1.0 + travel_time * 0.5 + obstacle_density * 2.0 + task_switch * 0.3` in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
+- [X] T014 [US3] Add secondary sort by `robot_id` (lexicographically lower wins) for equal-cost bids in `resolveAuction()` in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
 
 **Checkpoint**: Auction produces deterministic, spec-compliant results for identical inputs.
 
@@ -85,11 +85,11 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Uncomment `#include "swarm_nav_msgs/msg/obstacle_array.hpp"` in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.hpp`
-- [ ] T016 [US4] Add `rclcpp::Time last_seen` field to `DynamicObstacle` struct and populate it in `obstacleCallback()` in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
-- [ ] T017 [US4] Implement classification-based decay in `updateCosts()`: STATIC=permanent LETHAL, SEMI_DYNAMIC=linear 5s decay, DYNAMIC=exponential 2s decay in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
-- [ ] T018 [US4] Replace linear inflation with Gaussian falloff `C = C_max * exp(-d² / (2*σ²))` where `σ = obstacle_radius + robot_radius + 0.2` in `inflateObstacle()` in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
-- [ ] T019 [US4] Add predictive trajectory inflation for DYNAMIC obstacles along their velocity vector (multiple sample points over 1.5s horizon) in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
+- [X] T015 [US4] Uncomment `#include "swarm_nav_msgs/msg/obstacle_array.hpp"` in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.hpp`
+- [X] T016 [US4] Add `rclcpp::Time last_seen` field to `DynamicObstacle` struct and populate it in `obstacleCallback()` in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
+- [X] T017 [US4] Implement classification-based decay in `updateCosts()`: STATIC=permanent LETHAL, SEMI_DYNAMIC=linear 5s decay, DYNAMIC=exponential 2s decay in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
+- [X] T018 [US4] Replace linear inflation with Gaussian falloff `C = C_max * exp(-d² / (2*σ²))` where `σ = obstacle_radius + robot_radius + 0.2` in `inflateObstacle()` in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
+- [X] T019 [US4] Add predictive trajectory inflation for DYNAMIC obstacles along their velocity vector (multiple sample points over 1.5s horizon) in `src/swarm_nav_navigation/plugins/dynamic_obstacle_layer.cpp`
 
 **Checkpoint**: Costmap visually shows distinct inflation patterns for each classification.
 
@@ -103,12 +103,12 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 ### Implementation for User Story 5
 
-- [ ] T020 [P] [US5] Change `#include <behaviortree_cpp_v3/...>` to `#include <behaviortree_cpp/...>` in `src/swarm_nav_coordination/src/bt_nodes/map_coverage_check.cpp`
-- [ ] T021 [P] [US5] Change `#include <behaviortree_cpp_v3/...>` to `#include <behaviortree_cpp/...>` in `src/swarm_nav_coordination/src/bt_nodes/frontier_detector_bt.cpp`
-- [ ] T022 [P] [US5] Change `#include <behaviortree_cpp_v3/...>` to `#include <behaviortree_cpp/...>` in `src/swarm_nav_coordination/src/bt_nodes/run_auction_bt.cpp`
-- [ ] T023 [US5] Change `find_package(behaviortree_cpp_v3)` to `find_package(behaviortree_cpp)` and update target references in `src/swarm_nav_coordination/CMakeLists.txt`
-- [ ] T024 [US5] Wire `FrontierDetectorBT::tick()` to subscribe to `frontiers` topic and output real frontier count (remove hardcoded `frontier_count = 5`) in `src/swarm_nav_coordination/src/bt_nodes/frontier_detector_bt.cpp`
-- [ ] T025 [US5] Wire `RunAuctionBT` to subscribe to `/swarm/auction/result`, trigger real auction participation via `/swarm/auction/announce`, and output real assigned frontier ID (remove hardcoded `"frontier_1"`) in `src/swarm_nav_coordination/src/bt_nodes/run_auction_bt.cpp`
+- [X] T020 [P] [US5] Change `#include <behaviortree_cpp_v3/...>` to `#include <behaviortree_cpp/...>` in `src/swarm_nav_coordination/src/bt_nodes/map_coverage_check.cpp`
+- [X] T021 [P] [US5] Change `#include <behaviortree_cpp_v3/...>` to `#include <behaviortree_cpp/...>` in `src/swarm_nav_coordination/src/bt_nodes/frontier_detector_bt.cpp`
+- [X] T022 [P] [US5] Change `#include <behaviortree_cpp_v3/...>` to `#include <behaviortree_cpp/...>` in `src/swarm_nav_coordination/src/bt_nodes/run_auction_bt.cpp`
+- [X] T023 [US5] Change `find_package(behaviortree_cpp_v3)` to `find_package(behaviortree_cpp)` and update target references in `src/swarm_nav_coordination/CMakeLists.txt`
+- [X] T024 [US5] Wire `FrontierDetectorBT::tick()` to subscribe to `frontiers` topic and output real frontier count (remove hardcoded `frontier_count = 5`) in `src/swarm_nav_coordination/src/bt_nodes/frontier_detector_bt.cpp`
+- [X] T025 [US5] Wire `RunAuctionBT` to subscribe to `/swarm/auction/result`, trigger real auction participation via `/swarm/auction/announce`, and output real assigned frontier ID (remove hardcoded `"frontier_1"`) in `src/swarm_nav_coordination/src/bt_nodes/run_auction_bt.cpp`
 
 **Checkpoint**: BT nodes consume and produce live data; no hardcoded return values remain.
 
@@ -122,9 +122,9 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 ### Implementation for User Story 6
 
-- [ ] T026 [US6] Add a subscription to neighbor robot's `map` topic (dynamically constructed from `neighbor_id`) in `src/swarm_nav_slam/src/graph_merge_node.cpp`
-- [ ] T027 [US6] Implement `mergeGraphs()` as cell-wise max occupancy grid overlay using TF transform from neighbor map frame to own map frame in `src/swarm_nav_slam/src/graph_merge_node.cpp`
-- [ ] T028 [US6] Publish the merged grid to `/swarm/global_map` via `global_map_pub_` after successful merge in `src/swarm_nav_slam/src/graph_merge_node.cpp`
+- [X] T026 [US6] Add a subscription to neighbor robot's `map` topic (dynamically constructed from `neighbor_id`) in `src/swarm_nav_slam/src/graph_merge_node.cpp`
+- [X] T027 [US6] Implement `mergeGraphs()` as cell-wise max occupancy grid overlay using TF transform from neighbor map frame to own map frame in `src/swarm_nav_slam/src/graph_merge_node.cpp`
+- [X] T028 [US6] Publish the merged grid to `/swarm/global_map` via `global_map_pub_` after successful merge in `src/swarm_nav_slam/src/graph_merge_node.cpp`
 
 **Checkpoint**: `/swarm/global_map` publishes a merged occupancy grid when two robots are within 3.0m.
 
@@ -138,9 +138,9 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 ### Implementation for User Story 1
 
-- [ ] T029 [US1] Implement truncated velocity obstacle (VO) cone computation for each neighbor in `computeOrcaVelocity()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
-- [ ] T030 [US1] Implement preferred velocity projection onto nearest safe point outside all VO cones in `computeOrcaVelocity()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
-- [ ] T031 [US1] Add velocity clamping to `max_linear_velocity` and `max_angular_velocity` parameters in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
+- [X] T029 [US1] Implement truncated velocity obstacle (VO) cone computation for each neighbor in `computeOrcaVelocity()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
+- [X] T030 [US1] Implement preferred velocity projection onto nearest safe point outside all VO cones in `computeOrcaVelocity()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
+- [X] T031 [US1] Add velocity clamping to `max_linear_velocity` and `max_angular_velocity` parameters in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
 
 **Checkpoint**: ORCA filter produces geometrically correct collision-free velocities.
 
@@ -154,12 +154,12 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 ### Implementation for User Story 7
 
-- [ ] T032 [US7] Create `neighbor_state_aggregator_node.cpp` in `src/swarm_nav_navigation/src/` — subscribes to `/swarm/robot_state`, aggregates into `NeighborStateArray`, publishes to `/swarm/neighbor_states` at 10 Hz
-- [ ] T033 [US7] Add `neighbor_state_aggregator_node` executable target to `src/swarm_nav_navigation/CMakeLists.txt`
-- [ ] T034 [US7] Change ORCA filter `state_pub_` topic from `/swarm/neighbor_states` to `/swarm/robot_state` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
-- [ ] T035 [US7] Fix `swarm.launch.py` to conditionally spawn robots based on `num_robots` parameter (replace hardcoded `range(5)` with dynamic range) in `src/swarm_nav_bringup/launch/swarm.launch.py`
-- [ ] T036 [US7] Remove or replace the `global_map_merger` Node reference (non-existent executable) in `src/swarm_nav_bringup/launch/swarm.launch.py`
-- [ ] T037 [US7] Add `neighbor_state_aggregator_node` launch action to `swarm.launch.py` in `src/swarm_nav_bringup/launch/swarm.launch.py`
+- [X] T032 [US7] Create `neighbor_state_aggregator_node.cpp` in `src/swarm_nav_navigation/src/` — subscribes to `/swarm/robot_state`, aggregates into `NeighborStateArray`, publishes to `/swarm/neighbor_states` at 10 Hz
+- [X] T033 [US7] Add `neighbor_state_aggregator_node` executable target to `src/swarm_nav_navigation/CMakeLists.txt`
+- [X] T034 [US7] Change ORCA filter `state_pub_` topic from `/swarm/neighbor_states` to `/swarm/robot_state` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
+- [X] T035 [US7] Fix `swarm.launch.py` to conditionally spawn robots based on `num_robots` parameter (replace hardcoded `range(5)` with dynamic range) in `src/swarm_nav_bringup/launch/swarm.launch.py`
+- [X] T036 [US7] Remove or replace the `global_map_merger` Node reference (non-existent executable) in `src/swarm_nav_bringup/launch/swarm.launch.py`
+- [X] T037 [US7] Add `neighbor_state_aggregator_node` launch action to `swarm.launch.py` in `src/swarm_nav_bringup/launch/swarm.launch.py`
 
 **Checkpoint**: Full system launches cleanly with configurable robot count and no errors.
 
@@ -169,12 +169,12 @@ description: "Task list for completing all SwarmNav-Sim core node implementation
 
 **Purpose**: QoS alignment, documentation, and final verification.
 
-- [ ] T038 [P] Apply QoS corrections per `contracts/dds-qos-corrections.md`: change `/swarm/auction/announce` to `rclcpp::QoS(1).best_effort()` in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
-- [ ] T039 [P] Apply QoS corrections: change `/swarm/neighbor_states` subscriptions to `rclcpp::SensorDataQoS()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp` and `src/swarm_nav_slam/src/graph_merge_node.cpp`
-- [ ] T040 [P] Apply QoS corrections: change `/swarm/robot_state` publisher to `rclcpp::SensorDataQoS()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
-- [ ] T041 Update `IMPLEMENTATION_SUMMARY.md` to reflect all completed fixes and remove "Known Limitations" entries that are resolved
-- [ ] T042 Update `README.md` with corrected build instructions and smoke test commands from `quickstart.md`
-- [ ] T043 Run full workspace `colcon build` and verify zero warnings zero errors
+- [X] T038 [P] Apply QoS corrections per `contracts/dds-qos-corrections.md`: change `/swarm/auction/announce` to `rclcpp::QoS(1).best_effort()` in `src/swarm_nav_coordination/src/auctioneer_node.cpp`
+- [X] T039 [P] Apply QoS corrections: change `/swarm/neighbor_states` subscriptions to `rclcpp::SensorDataQoS()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp` and `src/swarm_nav_slam/src/graph_merge_node.cpp`
+- [X] T040 [P] Apply QoS corrections: change `/swarm/robot_state` publisher to `rclcpp::SensorDataQoS()` in `src/swarm_nav_navigation/src/orca_velocity_filter_node.cpp`
+- [X] T041 Update `IMPLEMENTATION_SUMMARY.md` to reflect all completed fixes and remove "Known Limitations" entries that are resolved
+- [X] T042 Update `README.md` with corrected build instructions and smoke test commands from `quickstart.md`
+- [X] T043 Run full workspace `colcon build` and verify zero warnings zero errors
 
 ---
 
