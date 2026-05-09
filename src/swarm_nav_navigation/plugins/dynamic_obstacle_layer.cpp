@@ -4,6 +4,8 @@
 #include "dynamic_obstacle_layer.hpp"
 #include <nav2_costmap_2d/costmap_math.hpp>
 #include <pluginlib/class_list_macros.hpp>
+#include "swarm_nav_msgs/msg/obstacle_array.hpp"
+#include <rclcpp/serialization.hpp>
 
 PLUGINLIB_EXPORT_CLASS(swarm_nav_navigation::DynamicObstacleLayer, nav2_costmap_2d::Layer)
 
@@ -57,10 +59,33 @@ void DynamicObstacleLayer::obstacleCallback(
 {
   std::lock_guard<std::mutex> lock(obstacles_mutex_);
   
-  // TODO: Deserialize ObstacleArray message
-  // For now, this is a placeholder
+  // Deserialize ObstacleArray message
+  rclcpp::Serialization<swarm_nav_msgs::msg::ObstacleArray> serializer;
+  swarm_nav_msgs::msg::ObstacleArray obstacle_array;
   
-  RCLCPP_DEBUG(node_.lock()->get_logger(), "Received obstacle update");
+  try {
+    serializer.deserialize_message(msg.get(), &obstacle_array);
+    
+    // Clear old obstacles and update with new data
+    obstacles_.clear();
+    
+    for (const auto& obs_msg : obstacle_array.obstacles) {
+      DynamicObstacle obstacle;
+      obstacle.id = obs_msg.id;
+      obstacle.pose = obs_msg.pose;
+      obstacle.velocity = obs_msg.velocity;
+      obstacle.radius = obs_msg.radius;
+      obstacle.classification = obs_msg.classification;
+      
+      obstacles_.push_back(obstacle);
+    }
+    
+    RCLCPP_DEBUG(node_.lock()->get_logger(), 
+                 "Received %zu obstacles", obstacles_.size());
+  } catch (const std::exception& e) {
+    RCLCPP_ERROR(node_.lock()->get_logger(), 
+                 "Failed to deserialize obstacle message: %s", e.what());
+  }
 }
 
 void DynamicObstacleLayer::updateBounds(

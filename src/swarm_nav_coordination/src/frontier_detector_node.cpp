@@ -11,9 +11,8 @@
 #include <queue>
 #include <cmath>
 
-// Forward declare custom message (will be generated from swarm_nav_msgs)
-// #include "swarm_nav_msgs/msg/frontier.hpp"
-// #include "swarm_nav_msgs/msg/frontier_array.hpp"
+#include "swarm_nav_msgs/msg/frontier.hpp"
+#include "swarm_nav_msgs/msg/frontier_array.hpp"
 
 namespace swarm_nav_coordination
 {
@@ -52,9 +51,9 @@ public:
     );
     
     // Publisher for detected frontiers
-    // frontier_pub_ = this->create_publisher<swarm_nav_msgs::msg::FrontierArray>(
-    //   "frontiers", 10
-    // );
+    frontier_pub_ = this->create_publisher<swarm_nav_msgs::msg::FrontierArray>(
+      "frontiers", 10
+    );
     
     // Publisher for visualization
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -75,7 +74,7 @@ private:
     RCLCPP_INFO(this->get_logger(), "Detected %zu frontiers", frontiers.size());
     
     // Publish frontiers
-    // TODO: Publish FrontierArray message
+    publishFrontiers(frontiers);
     
     // Publish visualization markers
     publishMarkers(frontiers);
@@ -212,6 +211,26 @@ private:
     return robot_id_ + "_frontier_" + std::to_string(counter++);
   }
   
+  void publishFrontiers(const std::vector<Frontier>& frontiers)
+  {
+    swarm_nav_msgs::msg::FrontierArray frontier_array;
+    frontier_array.header.stamp = this->now();
+    frontier_array.header.frame_id = "map";
+    
+    for (const auto& frontier : frontiers) {
+      swarm_nav_msgs::msg::Frontier frontier_msg;
+      frontier_msg.centroid = frontier.centroid;
+      frontier_msg.size = frontier.size;
+      frontier_msg.utility = frontier.utility;
+      frontier_msg.frontier_id = frontier.frontier_id;
+      
+      frontier_array.frontiers.push_back(frontier_msg);
+    }
+    
+    frontier_pub_->publish(frontier_array);
+    RCLCPP_DEBUG(this->get_logger(), "Published %zu frontiers", frontiers.size());
+  }
+  
   void publishMarkers(const std::vector<Frontier>& frontiers)
   {
     visualization_msgs::msg::MarkerArray marker_array;
@@ -249,6 +268,7 @@ private:
   double frontier_travel_distance_;
   
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
+  rclcpp::Publisher<swarm_nav_msgs::msg::FrontierArray>::SharedPtr frontier_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 };
 

@@ -13,6 +13,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(swarm_nav_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -26,18 +27,13 @@ ament_target_dependencies(graph_merge_node
   nav_msgs
   sensor_msgs
   tf2_ros
+  swarm_nav_msgs
 )
 
 # Install executables
 install(TARGETS
   graph_merge_node
   DESTINATION lib/${PROJECT_NAME}
-)
-
-# Install launch files and config
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

@@ -13,6 +13,8 @@
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>swarm_nav_msgs</depend>
   <depend>behaviortree_cpp_v3</depend>
 
   <test_depend>ament_lint_auto</test_depend>

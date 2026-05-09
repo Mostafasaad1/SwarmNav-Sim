@@ -12,8 +12,8 @@
 #include <vector>
 #include <mutex>
 
-// Forward declare custom message
-// #include "swarm_nav_msgs/msg/neighbor_state_array.hpp"
+#include "swarm_nav_msgs/msg/neighbor_state_array.hpp"
+#include "swarm_nav_msgs/msg/neighbor_state.hpp"
 
 namespace swarm_nav_navigation
 {
@@ -67,19 +67,19 @@ public:
     );
     
     // Subscribe to neighbor states
-    // neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
-    //   "/swarm/neighbor_states",
-    //   10,
-    //   std::bind(&OrcaVelocityFilterNode::neighborCallback, this, std::placeholders::_1)
-    // );
+    neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
+      "/swarm/neighbor_states",
+      10,
+      std::bind(&OrcaVelocityFilterNode::neighborCallback, this, std::placeholders::_1)
+    );
     
     // Publish filtered safe velocity
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     
     // Publish own state to swarm
-    // state_pub_ = this->create_publisher<swarm_nav_msgs::msg::NeighborState>(
-    //   "/swarm/neighbor_states", 10
-    // );
+    state_pub_ = this->create_publisher<swarm_nav_msgs::msg::NeighborState>(
+      "/swarm/neighbor_states", 10
+    );
     
     // Timer to publish own state
     state_timer_ = this->create_wall_timer(
@@ -114,6 +114,30 @@ private:
   {
     std::lock_guard<std::mutex> lock(mutex_);
     current_odom_ = *msg;
+  }
+  
+  void neighborCallback(const swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    // Update neighbor states
+    neighbors_.clear();
+    for (const auto& neighbor_msg : msg->neighbors) {
+      // Skip own state
+      if (neighbor_msg.robot_id == robot_id_) {
+        continue;
+      }
+      
+      NeighborState neighbor;
+      neighbor.robot_id = neighbor_msg.robot_id;
+      neighbor.pose = neighbor_msg.pose;
+      neighbor.velocity = neighbor_msg.velocity;
+      neighbor.radius = neighbor_msg.radius;
+      
+      neighbors_.push_back(neighbor);
+    }
+    
+    RCLCPP_DEBUG(this->get_logger(), "Updated %zu neighbor states", neighbors_.size());
   }
   
   geometry_msgs::msg::Twist computeOrcaVelocity(const geometry_msgs::msg::Twist& desired_vel)
@@ -152,8 +176,15 @@ private:
   {
     std::lock_guard<std::mutex> lock(mutex_);
     
-    // TODO: Publish NeighborState message with current pose and velocity
-    RCLCPP_DEBUG(this->get_logger(), "Publishing own state");
+    // Publish NeighborState message with current pose and velocity
+    swarm_nav_msgs::msg::NeighborState state_msg;
+    state_msg.robot_id = robot_id_;
+    state_msg.pose = current_odom_.pose.pose;
+    state_msg.velocity = current_odom_.twist.twist;
+    state_msg.radius = static_cast<float>(robot_radius_);
+    
+    state_pub_->publish(state_msg);
+    RCLCPP_DEBUG(this->get_logger(), "Published own state");
   }
 
   // Member variables
@@ -173,7 +204,9 @@ private:
   
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_nav2_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<swarm_nav_msgs::msg::NeighborStateArray>::SharedPtr neighbor_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+  rclcpp::Publisher<swarm_nav_msgs::msg::NeighborState>::SharedPtr state_pub_;
   rclcpp::TimerBase::SharedPtr state_timer_;
 };
 

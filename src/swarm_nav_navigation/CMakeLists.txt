@@ -13,9 +13,20 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(nav2_core REQUIRED)
-find_package(nav2_costmap_2d REQUIRED)
-find_package(pluginlib REQUIRED)
+find_package(swarm_nav_msgs REQUIRED)
+
+# Optional Nav2 dependencies
+find_package(nav2_core QUIET)
+find_package(nav2_costmap_2d QUIET)
+find_package(pluginlib QUIET)
+
+set(BUILD_NAV2_PLUGIN FALSE)
+if(nav2_core_FOUND AND nav2_costmap_2d_FOUND AND pluginlib_FOUND)
+  set(BUILD_NAV2_PLUGIN TRUE)
+  message(STATUS "Nav2 found, building dynamic obstacle layer plugin")
+else()
+  message(WARNING "Nav2 not found, skipping dynamic obstacle layer plugin")
+endif()
 
 # Include directories
 include_directories(include plugins)
@@ -27,6 +38,7 @@ ament_target_dependencies(obstacle_tracker_node
   std_msgs
   geometry_msgs
   nav_msgs
+  swarm_nav_msgs
 )
 
 # ORCA velocity filter node
@@ -37,21 +49,36 @@ ament_target_dependencies(orca_velocity_filter_node
   geometry_msgs
   nav_msgs
   tf2_ros
+  swarm_nav_msgs
 )
 
-# Dynamic obstacle layer plugin
-add_library(dynamic_obstacle_layer SHARED
-  plugins/dynamic_obstacle_layer.cpp
-)
-ament_target_dependencies(dynamic_obstacle_layer
-  rclcpp
-  std_msgs
-  geometry_msgs
-  nav_msgs
-  nav2_core
-  nav2_costmap_2d
-  pluginlib
-)
+# Dynamic obstacle layer plugin (only if Nav2 is available)
+if(BUILD_NAV2_PLUGIN)
+  add_library(dynamic_obstacle_layer SHARED
+    plugins/dynamic_obstacle_layer.cpp
+  )
+  ament_target_dependencies(dynamic_obstacle_layer
+    rclcpp
+    std_msgs
+    geometry_msgs
+    nav_msgs
+    nav2_core
+    nav2_costmap_2d
+    pluginlib
+    swarm_nav_msgs
+  )
+  
+  # Install plugin library
+  install(TARGETS
+    dynamic_obstacle_layer
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+  )
+  
+  # Install plugin description
+  pluginlib_export_plugin_description_file(nav2_costmap_2d plugins/costmap_plugins.xml)
+endif()
 
 # Install executables
 install(TARGETS
@@ -59,17 +86,6 @@ install(TARGETS
   orca_velocity_filter_node
   DESTINATION lib/${PROJECT_NAME}
 )
-
-# Install plugin library
-install(TARGETS
-  dynamic_obstacle_layer
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-# Install plugin description
-pluginlib_export_plugin_description_file(nav2_costmap_2d plugins/costmap_plugins.xml)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

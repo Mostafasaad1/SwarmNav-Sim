@@ -7,6 +7,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
+#include "swarm_nav_msgs/msg/neighbor_state_array.hpp"
 
 #include <string>
 #include <vector>
@@ -39,14 +40,18 @@ public:
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     
-    // TODO: Create subscribers for:
-    // - Local pose graph from mrg_slam
-    // - Neighbor robot poses for rendezvous detection
-    // - Shared graph messages from other robots
+    // Subscribe to neighbor states for rendezvous detection
+    neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
+      "/swarm/neighbor_states",
+      10,
+      std::bind(&GraphMergeNode::neighborCallback, this, std::placeholders::_1)
+    );
     
-    // TODO: Create publishers for:
-    // - Merged global map
-    // - Graph exchange messages
+    // Publisher for merged global map
+    global_map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+      "/swarm/global_map",
+      rclcpp::QoS(10).transient_local()
+    );
     
     // Create timer for periodic graph exchange checks
     timer_ = this->create_wall_timer(
@@ -56,27 +61,70 @@ public:
   }
 
 private:
-  void timerCallback()
+  void neighborCallback(const swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg)
   {
-    // TODO: Check for nearby robots
-    // TODO: Trigger graph exchange if within rendezvous distance
-    // TODO: Perform graph optimization after receiving neighbor graphs
+    std::lock_guard<std::mutex> lock(graph_mutex_);
+    
+    // Update neighbor poses
+    neighbor_poses_.clear();
+    for (const auto& neighbor : msg->neighbors) {
+      if (neighbor.robot_id != robot_id_) {
+        neighbor_poses_[neighbor.robot_id] = neighbor.pose;
+      }
+    }
   }
   
-  bool isRobotNearby(const std::string& neighbor_id)
+  void timerCallback()
   {
-    // TODO: Implement distance check between this robot and neighbor
-    // Use TF to get relative pose
-    return false;
+    std::lock_guard<std::mutex> lock(graph_mutex_);
+    
+    // Check for nearby robots
+    for (const auto& [neighbor_id, neighbor_pose] : neighbor_poses_) {
+      if (isRobotNearby(neighbor_id, neighbor_pose)) {
+        RCLCPP_INFO(this->get_logger(), "Robot %s is nearby (< %.2fm), triggering graph exchange",
+                    neighbor_id.c_str(), rendezvous_distance_);
+        mergeGraphs();
+        break;
+      }
+    }
+  }
+  
+  bool isRobotNearby(const std::string& neighbor_id, const geometry_msgs::msg::Pose& neighbor_pose)
+  {
+    // Get own pose from TF
+    try {
+      auto transform = tf_buffer_->lookupTransform(
+        "map",
+        robot_id_ + "/base_footprint",
+        tf2::TimePointZero
+      );
+      
+      // Calculate Euclidean distance
+      double dx = neighbor_pose.position.x - transform.transform.translation.x;
+      double dy = neighbor_pose.position.y - transform.transform.translation.y;
+      double distance = std::sqrt(dx * dx + dy * dy);
+      
+      return distance < rendezvous_distance_;
+      
+    } catch (const tf2::TransformException& ex) {
+      RCLCPP_DEBUG(this->get_logger(), "Could not get transform: %s", ex.what());
+      return false;
+    }
   }
   
   void mergeGraphs()
   {
-    // TODO: Implement pose graph merging algorithm
+    // Placeholder implementation for pose graph merging
+    // In production, this would:
     // 1. Align coordinate frames using ICP or feature matching
-    // 2. Merge keyframes and edges
+    // 2. Merge keyframes and edges from neighbor graphs
     // 3. Run g2o optimization on merged graph
     // 4. Update local map with optimized poses
+    
+    RCLCPP_INFO(this->get_logger(), "Merging pose graphs (placeholder implementation)");
+    
+    // For now, just log that merge would happen
+    // Actual mrg_slam integration would handle the real graph merging
   }
 
   // Member variables
@@ -90,7 +138,11 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   
   std::mutex graph_mutex_;
+  std::map<std::string, geometry_msgs::msg::Pose> neighbor_poses_;
   std::map<std::string, std::vector<geometry_msgs::msg::PoseStamped>> neighbor_graphs_;
+  
+  rclcpp::Subscription<swarm_nav_msgs::msg::NeighborStateArray>::SharedPtr neighbor_sub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr global_map_pub_;
 };
 
 } // namespace swarm_nav_slam
