@@ -12,11 +12,11 @@ namespace swarm_nav_coordination
 class MapCoverageCheck : public BT::ConditionNode
 {
 public:
-  MapCoverageCheck(const std::string& name, const BT::NodeConfiguration& config)
-    : BT::ConditionNode(name, config)
+  MapCoverageCheck(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::ConditionNode(name, config)
   {
     node_ = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
-    
+
     // Subscribe to global map
     map_sub_ = node_->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "/swarm/global_map",
@@ -39,22 +39,23 @@ public:
     if (!latest_map_) {
       return BT::NodeStatus::FAILURE;
     }
-    
+
     // Get coverage threshold
     double threshold = 0.95;
     getInput("coverage_threshold", threshold);
-    
+
     // Calculate coverage
     double coverage = calculateCoverage(latest_map_);
-    
-    RCLCPP_DEBUG(node_->get_logger(), "Map coverage: %.2f%% (threshold: %.2f%%)", 
-                 coverage * 100.0, threshold * 100.0);
-    
+
+    RCLCPP_DEBUG(
+      node_->get_logger(), "Map coverage: %.2f%% (threshold: %.2f%%)",
+      coverage * 100.0, threshold * 100.0);
+
     if (coverage >= threshold) {
       RCLCPP_INFO(node_->get_logger(), "Coverage threshold met: %.2f%%", coverage * 100.0);
       return BT::NodeStatus::SUCCESS;
     }
-    
+
     return BT::NodeStatus::FAILURE;
   }
 
@@ -63,14 +64,14 @@ private:
   {
     int total_cells = 0;
     int known_cells = 0;
-    
-    for (const auto& cell : map->data) {
+
+    for (const auto & cell : map->data) {
       total_cells++;
       if (cell != -1) {  // Not unknown
         known_cells++;
       }
     }
-    
+
     return total_cells > 0 ? static_cast<double>(known_cells) / total_cells : 0.0;
   }
 

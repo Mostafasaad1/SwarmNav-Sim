@@ -39,12 +39,12 @@ TEST_F(AuctioneerNodeTest, NodeConstruction)
 TEST_F(AuctioneerNodeTest, ParameterDeclaration)
 {
   auto node = std::make_shared<rclcpp::Node>("test_auctioneer");
-  
+
   // Declare parameters that AuctioneerNode should have
   node->declare_parameter("robot_id", "robot_0");
   node->declare_parameter("bid_timeout_ms", 500);
   node->declare_parameter("nominal_speed", 0.5);
-  
+
   // Verify parameters can be retrieved
   EXPECT_EQ(node->get_parameter("robot_id").as_string(), "robot_0");
   EXPECT_EQ(node->get_parameter("bid_timeout_ms").as_int(), 500);
@@ -60,16 +60,16 @@ TEST_F(AuctioneerNodeTest, BidCostFormula)
   // Test known inputs
   double distance = 10.0;  // meters
   double nominal_speed = 0.5;  // m/s
-  
+
   double expected_cost = distance / nominal_speed;  // 20.0 seconds
-  
+
   EXPECT_DOUBLE_EQ(expected_cost, 20.0);
-  
+
   // Test another case
   distance = 5.0;
   nominal_speed = 1.0;
   expected_cost = distance / nominal_speed;  // 5.0 seconds
-  
+
   EXPECT_DOUBLE_EQ(expected_cost, 5.0);
 }
 
@@ -80,7 +80,7 @@ TEST_F(AuctioneerNodeTest, BidCostZeroSpeed)
 {
   double distance = 10.0;
   double nominal_speed = 0.0;
-  
+
   // Should handle division by zero gracefully
   // In real implementation, this should return a large cost or handle error
   if (nominal_speed > 0.0) {
@@ -92,7 +92,7 @@ TEST_F(AuctioneerNodeTest, BidCostZeroSpeed)
   }
 }
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

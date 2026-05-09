@@ -24,7 +24,7 @@ import pytest
 @launch_testing.markers.keep_alive
 def generate_test_description():
     """Generate launch description for testing"""
-    
+
     # Launch the full swarm system
     swarm_launch = launch.actions.IncludeLaunchDescription(
         launch.launch_description_sources.PythonLaunchDescriptionSource([
@@ -41,7 +41,7 @@ def generate_test_description():
             'use_rviz': 'false',
         }.items()
     )
-    
+
     return launch.LaunchDescription([
         swarm_launch,
         launch_testing.actions.ReadyToTest()
@@ -50,27 +50,27 @@ def generate_test_description():
 
 class TestTopicPublishing(unittest.TestCase):
     """Test robot motion via cmd_vel publishing"""
-    
+
     @classmethod
     def setUpClass(cls):
         rclpy.init()
-    
+
     @classmethod
     def tearDownClass(cls):
         rclpy.shutdown()
-    
+
     def setUp(self):
         self.node = Node('test_topic_publishing')
         self.initial_pose = None
         self.current_pose = None
-        
+
         # Create publisher for cmd_vel
         self.cmd_vel_pub = self.node.create_publisher(
             Twist,
             '/robot_0/cmd_vel',
             10
         )
-        
+
         # Create subscriber for odom
         self.odom_sub = self.node.create_subscription(
             Odometry,
@@ -78,43 +78,43 @@ class TestTopicPublishing(unittest.TestCase):
             self._odom_callback,
             10
         )
-    
+
     def tearDown(self):
         self.node.destroy_node()
-    
+
     def _odom_callback(self, msg):
         if self.initial_pose is None:
             self.initial_pose = msg.pose.pose
         self.current_pose = msg.pose.pose
-    
+
     def test_robot_motion(self):
         """Test that publishing cmd_vel causes odom position to change"""
-        
+
         # Wait for initial odom message
         start_time = time.time()
         while self.initial_pose is None and time.time() - start_time < 10.0:
             rclpy.spin_once(self.node, timeout_sec=0.1)
-        
+
         self.assertIsNotNone(self.initial_pose, "Did not receive initial odom")
-        
+
         # Publish forward velocity command
         cmd = Twist()
         cmd.linear.x = 0.5  # 0.5 m/s forward
-        
+
         # Publish for 10 seconds
         start_time = time.time()
         while time.time() - start_time < 10.0:
             self.cmd_vel_pub.publish(cmd)
             rclpy.spin_once(self.node, timeout_sec=0.1)
-        
+
         # Check that position changed
         self.assertIsNotNone(self.current_pose, "Did not receive updated odom")
-        
+
         # Calculate distance moved
         dx = self.current_pose.position.x - self.initial_pose.position.x
         dy = self.current_pose.position.y - self.initial_pose.position.y
         distance = math.sqrt(dx * dx + dy * dy)
-        
+
         # Should have moved at least 1 meter (conservative check)
         self.assertGreater(
             distance,

@@ -14,9 +14,9 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace, LifecycleNode
 from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import RewrittenYaml
@@ -24,18 +24,19 @@ from nav2_common.launch import RewrittenYaml
 
 def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
     """Generate launch actions for a single robot"""
-    
+
     bringup_dir = get_package_share_directory('swarm_nav_bringup')
-    
+
     # Robot namespace
     robot_namespace = f'robot_{robot_id}'
-    
+
     # SLAM configuration
-    slam_config = os.path.join(bringup_dir, 'config', 'mrg_slam_multirobot.yaml')
-    
+    slam_config = os.path.join(
+        bringup_dir, 'config', 'mrg_slam_multirobot.yaml')
+
     # Nav2 configuration
     nav2_config = os.path.join(bringup_dir, 'config', 'robot_nav2.yaml')
-    
+
     # Rewrite Nav2 config with namespace
     configured_params = RewrittenYaml(
         source_file=nav2_config,
@@ -43,11 +44,11 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
         param_rewrites={},
         convert_types=True
     )
-    
+
     # Group all robot nodes under namespace
     robot_group = GroupAction([
         PushRosNamespace(robot_namespace),
-        
+
         # Robot state publisher
         Node(
             package='robot_state_publisher',
@@ -55,11 +56,11 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             name='robot_state_publisher',
             parameters=[{
                 'use_sim_time': True,
-                'robot_description': open(os.path.join(bringup_dir, 'urdf', 'swarm_robot.urdf.xacro')).read(),
+                'robot_description': Command(['xacro ', os.path.join(bringup_dir, 'urdf', 'swarm_robot.urdf.xacro')]),
                 'frame_prefix': f'{robot_namespace}/'
             }]
         ),
-        
+
         # Graph merge node for multi-robot SLAM
         Node(
             package='swarm_nav_slam',
@@ -73,7 +74,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             }],
             output='screen'
         ),
-        
+
         # Frontier detector node
         Node(
             package='swarm_nav_coordination',
@@ -87,7 +88,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             }],
             output='screen'
         ),
-        
+
         # Auctioneer node
         Node(
             package='swarm_nav_coordination',
@@ -101,7 +102,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             }],
             output='screen'
         ),
-        
+
         # ORCA velocity filter node
         Node(
             package='swarm_nav_navigation',
@@ -118,7 +119,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             }],
             output='screen'
         ),
-        
+
         # Nav2 Controller Server
         LifecycleNode(
             package='nav2_controller',
@@ -127,7 +128,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             output='screen',
             parameters=[configured_params],
         ),
-        
+
         # Nav2 Planner Server
         LifecycleNode(
             package='nav2_planner',
@@ -136,7 +137,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             output='screen',
             parameters=[configured_params],
         ),
-        
+
         # Nav2 Behavior Server
         LifecycleNode(
             package='nav2_behaviors',
@@ -145,7 +146,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             output='screen',
             parameters=[configured_params],
         ),
-        
+
         # Nav2 BT Navigator
         LifecycleNode(
             package='nav2_bt_navigator',
@@ -154,7 +155,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             output='screen',
             parameters=[configured_params],
         ),
-        
+
         # Nav2 Lifecycle Manager
         Node(
             package='nav2_lifecycle_manager',
@@ -173,16 +174,16 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             }]
         ),
     ])
-    
+
     return robot_group
 
 
 def launch_robots(context, *args, **kwargs):
     """OpaqueFunction: dynamically reads num_robots and spawns robot groups."""
-    
+
     num_robots = int(LaunchConfiguration('num_robots').perform(context))
     num_robots = max(1, min(5, num_robots))  # Clamp to [1, 5]
-    
+
     # Robot positions in warehouse (40m x 60m)
     robot_positions = [
         (0, -15.0, 0.0, 0.0),      # robot_0
@@ -191,47 +192,47 @@ def launch_robots(context, *args, **kwargs):
         (-5.0, -20.0, 0.0, 0.0),   # robot_3
         (5.0, -20.0, 0.0, 0.0),    # robot_4
     ]
-    
+
     actions = []
     for i in range(num_robots):
         robot_id, x, y, yaw = robot_positions[i]
         actions.append(generate_robot_launch(i, x, y, yaw))
-    
+
     return actions
 
 
 def generate_launch_description():
     """Generate launch description for multi-robot swarm"""
-    
+
     # Launch arguments
     num_robots_arg = DeclareLaunchArgument(
         'num_robots',
         default_value='3',
         description='Number of robots to spawn (1-5)'
     )
-    
+
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
         default_value='true',
         description='Use simulation time'
     )
-    
+
     use_rviz_arg = DeclareLaunchArgument(
         'use_rviz',
         default_value='true',
         description='Launch RViz for visualization'
     )
-    
+
     simulator_arg = DeclareLaunchArgument(
         'simulator',
         default_value='gazebo',
         description='Simulator backend to use (gazebo, coppeliasim, or none)'
     )
-    
+
     # Get launch configurations
     use_rviz = LaunchConfiguration('use_rviz')
     simulator = LaunchConfiguration('simulator')
-    
+
     # Include simulator launch file based on simulator argument
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -245,24 +246,24 @@ def generate_launch_description():
             'num_robots': LaunchConfiguration('num_robots'),
             'use_sim_time': LaunchConfiguration('use_sim_time'),
         }.items(),
-        condition=IfCondition(LaunchConfiguration('simulator'))
+        condition=LaunchConfigurationEquals('simulator', 'gazebo')
     )
-    
+
     # Create launch description
     ld = LaunchDescription()
-    
+
     # Add launch arguments
     ld.add_action(num_robots_arg)
     ld.add_action(use_sim_time_arg)
     ld.add_action(use_rviz_arg)
     ld.add_action(simulator_arg)
-    
+
     # Add simulator launch
     ld.add_action(gazebo_launch)
-    
+
     # Spawn robots dynamically based on num_robots parameter
     ld.add_action(OpaqueFunction(function=launch_robots))
-    
+
     # Neighbor state aggregator node (collects individual states into array)
     ld.add_action(Node(
         package='swarm_nav_navigation',
@@ -275,7 +276,7 @@ def generate_launch_description():
         }],
         output='screen'
     ))
-    
+
     # Obstacle tracker node (publishes dynamic obstacles)
     ld.add_action(Node(
         package='swarm_nav_navigation',
@@ -288,11 +289,11 @@ def generate_launch_description():
         }],
         output='screen'
     ))
-    
+
     # RViz for visualization
     bringup_dir = get_package_share_directory('swarm_nav_bringup')
     rviz_config = os.path.join(bringup_dir, 'rviz', 'swarm_nav.rviz')
-    
+
     ld.add_action(Node(
         package='rviz2',
         executable='rviz2',
@@ -302,10 +303,9 @@ def generate_launch_description():
         condition=IfCondition(use_rviz),
         output='screen'
     ))
-    
+
     return ld
 
 
 if __name__ == '__main__':
     generate_launch_description()
-

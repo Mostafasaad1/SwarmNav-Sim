@@ -12,15 +12,15 @@ namespace swarm_nav_coordination
 class FrontierDetectorBT : public BT::SyncActionNode
 {
 public:
-  FrontierDetectorBT(const std::string& name, const BT::NodeConfiguration& config)
-    : BT::SyncActionNode(name, config)
+  FrontierDetectorBT(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config)
   {
     node_ = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
-    
+
     // Get robot_id from blackboard, fallback to "robot_0"
     std::string robot_id = "robot_0";
     config.blackboard->get<std::string>("robot_id", robot_id);
-    
+
     // Subscribe to frontiers topic
     frontier_sub_ = node_->create_subscription<swarm_nav_msgs::msg::FrontierArray>(
       "frontiers",
@@ -41,20 +41,20 @@ public:
   BT::NodeStatus tick() override
   {
     RCLCPP_INFO(node_->get_logger(), "Checking for frontiers...");
-    
+
     // Use real frontier count from subscription
     int frontier_count = 0;
     if (latest_frontiers_) {
       frontier_count = latest_frontiers_->frontiers.size();
     }
-    
+
     setOutput("frontier_count", frontier_count);
-    
+
     if (frontier_count > 0) {
       RCLCPP_INFO(node_->get_logger(), "Detected %d frontiers", frontier_count);
       return BT::NodeStatus::SUCCESS;
     }
-    
+
     RCLCPP_WARN(node_->get_logger(), "No frontiers detected");
     return BT::NodeStatus::FAILURE;
   }

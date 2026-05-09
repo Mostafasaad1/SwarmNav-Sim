@@ -42,28 +42,28 @@ TEST_F(GraphMergeTest, CellWiseMaxMerge)
   grid1.info.height = 10;
   grid1.info.resolution = 0.05;
   grid1.data.resize(100);
-  
+
   nav_msgs::msg::OccupancyGrid grid2;
   grid2.info.width = 10;
   grid2.info.height = 10;
   grid2.info.resolution = 0.05;
   grid2.data.resize(100);
-  
+
   // Fill with test data
   for (size_t i = 0; i < 100; ++i) {
     grid1.data[i] = (i % 2 == 0) ? 50 : 0;  // Alternating pattern
     grid2.data[i] = (i % 2 == 0) ? 0 : 75;  // Opposite pattern
   }
-  
+
   // Perform cell-wise max merge
   nav_msgs::msg::OccupancyGrid merged;
   merged.info = grid1.info;
   merged.data.resize(100);
-  
+
   for (size_t i = 0; i < 100; ++i) {
     merged.data[i] = std::max(grid1.data[i], grid2.data[i]);
   }
-  
+
   // Verify merge results
   for (size_t i = 0; i < 100; ++i) {
     if (i % 2 == 0) {
@@ -82,7 +82,7 @@ TEST_F(GraphMergeTest, MergeWithUnknownCells)
   std::vector<int8_t> grid1_data = {-1, 50, 100, -1};
   std::vector<int8_t> grid2_data = {75, -1, 50, -1};
   std::vector<int8_t> expected = {75, 50, 100, -1};
-  
+
   std::vector<int8_t> merged(4);
   for (size_t i = 0; i < 4; ++i) {
     if (grid1_data[i] == -1 && grid2_data[i] == -1) {
@@ -95,13 +95,13 @@ TEST_F(GraphMergeTest, MergeWithUnknownCells)
       merged[i] = std::max(grid1_data[i], grid2_data[i]);
     }
   }
-  
+
   for (size_t i = 0; i < 4; ++i) {
     EXPECT_EQ(merged[i], expected[i]);
   }
 }
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

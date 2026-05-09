@@ -36,15 +36,15 @@ TEST_F(ObstacleTrackerTest, NodeConstruction)
 TEST_F(ObstacleTrackerTest, ParameterDeclaration)
 {
   auto node = std::make_shared<rclcpp::Node>("test_obstacle_tracker");
-  
+
   node->declare_parameter("publish_rate", 10.0);
   node->declare_parameter("obstacle_timeout", 2.0);
-  
+
   EXPECT_DOUBLE_EQ(node->get_parameter("publish_rate").as_double(), 10.0);
   EXPECT_DOUBLE_EQ(node->get_parameter("obstacle_timeout").as_double(), 2.0);
 }
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

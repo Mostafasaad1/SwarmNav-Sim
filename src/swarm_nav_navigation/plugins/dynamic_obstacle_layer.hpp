@@ -49,13 +49,13 @@ public:
 
 private:
   void obstacleCallback(const std::shared_ptr<rclcpp::SerializedMessage> msg);
-  
+
   void inflateObstacle(
     nav2_costmap_2d::Costmap2D & master_grid,
-    const DynamicObstacle& obstacle,
+    const DynamicObstacle & obstacle,
     double prediction_time,
     double decay_factor);
-  
+
   void inflatePoint(
     nav2_costmap_2d::Costmap2D & master_grid,
     double world_x, double world_y,
@@ -63,10 +63,10 @@ private:
     double decay_factor);
 
   rclcpp::Subscription<rclcpp::SerializedMessage>::SharedPtr obstacle_sub_;
-  
+
   std::vector<DynamicObstacle> obstacles_;
   std::mutex obstacles_mutex_;
-  
+
   // Parameters
   double inflation_radius_;
   double prediction_time_;
