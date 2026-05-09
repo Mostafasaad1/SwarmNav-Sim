@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-test_topic_publishing.py
-Integration test for robot motion via topic publishing
+Integration test for robot motion via topic publishing.
+
+This module tests robot motion through cmd_vel publishing.
 """
 
 import unittest
@@ -23,8 +24,7 @@ import pytest
 @pytest.mark.launch_test
 @launch_testing.markers.keep_alive
 def generate_test_description():
-    """Generate launch description for testing"""
-
+    """Generate launch description for testing."""
     # Launch the full swarm system
     swarm_launch = launch.actions.IncludeLaunchDescription(
         launch.launch_description_sources.PythonLaunchDescriptionSource([
@@ -49,7 +49,7 @@ def generate_test_description():
 
 
 class TestTopicPublishing(unittest.TestCase):
-    """Test robot motion via cmd_vel publishing"""
+    """Test robot motion via cmd_vel publishing."""
 
     @classmethod
     def setUpClass(cls):
@@ -88,8 +88,7 @@ class TestTopicPublishing(unittest.TestCase):
         self.current_pose = msg.pose.pose
 
     def test_robot_motion(self):
-        """Test that publishing cmd_vel causes odom position to change"""
-
+        """Test that publishing cmd_vel causes odom position to change."""
         # Wait for initial odom message
         start_time = time.time()
         while self.initial_pose is None and time.time() - start_time < 10.0:

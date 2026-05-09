@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-swarm.launch.py
-Main launch file for SwarmNav-Sim multi-robot system
-Launches all robots with SLAM, navigation, and coordination nodes
+Main launch file for SwarmNav-Sim multi-robot system.
+
+Launches all robots with SLAM, navigation, and coordination nodes.
 """
 
 import os
@@ -23,16 +23,11 @@ from nav2_common.launch import RewrittenYaml
 
 
 def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
-    """Generate launch actions for a single robot"""
-
+    """Generate launch actions for a single robot."""
     bringup_dir = get_package_share_directory('swarm_nav_bringup')
 
     # Robot namespace
     robot_namespace = f'robot_{robot_id}'
-
-    # SLAM configuration
-    slam_config = os.path.join(
-        bringup_dir, 'config', 'mrg_slam_multirobot.yaml')
 
     # Nav2 configuration
     nav2_config = os.path.join(bringup_dir, 'config', 'robot_nav2.yaml')
@@ -56,7 +51,12 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             name='robot_state_publisher',
             parameters=[{
                 'use_sim_time': True,
-                'robot_description': Command(['xacro ', os.path.join(bringup_dir, 'urdf', 'swarm_robot.urdf.xacro')]),
+                'robot_description': Command([
+                    'xacro ',
+                    os.path.join(
+                        bringup_dir, 'urdf', 'swarm_robot.urdf.xacro'
+                    )
+                ]),
                 'frame_prefix': f'{robot_namespace}/'
             }]
         ),
@@ -125,6 +125,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_controller',
             executable='controller_server',
             name='controller_server',
+            namespace='',
             output='screen',
             parameters=[configured_params],
         ),
@@ -134,6 +135,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_planner',
             executable='planner_server',
             name='planner_server',
+            namespace='',
             output='screen',
             parameters=[configured_params],
         ),
@@ -143,6 +145,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_behaviors',
             executable='behavior_server',
             name='behavior_server',
+            namespace='',
             output='screen',
             parameters=[configured_params],
         ),
@@ -152,6 +155,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_bt_navigator',
             executable='bt_navigator',
             name='bt_navigator',
+            namespace='',
             output='screen',
             parameters=[configured_params],
         ),
@@ -180,7 +184,6 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
 
 def launch_robots(context, *args, **kwargs):
     """OpaqueFunction: dynamically reads num_robots and spawns robot groups."""
-
     num_robots = int(LaunchConfiguration('num_robots').perform(context))
     num_robots = max(1, min(5, num_robots))  # Clamp to [1, 5]
 
@@ -202,8 +205,7 @@ def launch_robots(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    """Generate launch description for multi-robot swarm"""
-
+    """Generate launch description for multi-robot swarm."""
     # Launch arguments
     num_robots_arg = DeclareLaunchArgument(
         'num_robots',
@@ -231,7 +233,6 @@ def generate_launch_description():
 
     # Get launch configurations
     use_rviz = LaunchConfiguration('use_rviz')
-    simulator = LaunchConfiguration('simulator')
 
     # Include simulator launch file based on simulator argument
     gazebo_launch = IncludeLaunchDescription(

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Gazebo Fortress launch file for SwarmNav-Sim
-Launches Gazebo with warehouse world and spawns multiple robots
+Gazebo Fortress launch file for SwarmNav-Sim.
+
+Launches Gazebo with warehouse world and spawns multiple robots.
 """
 
 import os
@@ -18,15 +19,12 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     # Get package directories
     pkg_swarm_nav_bringup = get_package_share_directory('swarm_nav_bringup')
-    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     # Paths
     world_file = os.path.join(pkg_swarm_nav_bringup,
                               'worlds', 'warehouse.world')
     urdf_file = os.path.join(pkg_swarm_nav_bringup,
                              'urdf', 'swarm_robot.urdf.xacro')
-    bridge_config = os.path.join(
-        pkg_swarm_nav_bringup, 'config', 'bridge_config.yaml')
 
     # Launch arguments
     num_robots_arg = DeclareLaunchArgument(
@@ -87,7 +85,6 @@ def generate_launch_description():
 
     robot_spawns = []
     robot_bridges = []
-    robot_state_publishers = []
 
     # Predefined spawn positions for up to 5 robots
     spawn_positions = [
@@ -102,13 +99,6 @@ def generate_launch_description():
     for i in range(3):
         robot_name = f'robot_{i}'
         pos = spawn_positions[i]
-
-        # Process URDF with xacro
-        xacro_cmd = ExecuteProcess(
-            cmd=['xacro', urdf_file, f'robot_name:={robot_name}'],
-            output='screen',
-            name=f'xacro_{robot_name}'
-        )
 
         # Spawn robot in Gazebo
         spawn_robot = Node(

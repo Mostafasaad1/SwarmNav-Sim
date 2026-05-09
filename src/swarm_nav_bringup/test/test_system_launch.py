@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-test_system_launch.py
-Integration test for full system launch
+Integration test for full system launch.
+
+This module tests the complete swarm system launch.
 """
 
 import unittest
@@ -23,8 +24,7 @@ import pytest
 @pytest.mark.launch_test
 @launch_testing.markers.keep_alive
 def generate_test_description():
-    """Generate launch description for testing"""
-
+    """Generate launch description for testing."""
     # Launch the full swarm system
     swarm_launch = launch.actions.IncludeLaunchDescription(
         launch.launch_description_sources.PythonLaunchDescriptionSource([
@@ -49,7 +49,7 @@ def generate_test_description():
 
 
 class TestSystemLaunch(unittest.TestCase):
-    """Test full system launch"""
+    """Test full system launch."""
 
     @classmethod
     def setUpClass(cls):
@@ -101,8 +101,7 @@ class TestSystemLaunch(unittest.TestCase):
         self.neighbor_states_received = True
 
     def test_topics_publish(self):
-        """Test that all expected topics publish at >= 1 Hz"""
-
+        """Test that all expected topics publish at >= 1 Hz."""
         # Spin for 60 seconds to allow system to start
         start_time = time.time()
         timeout = 60.0
@@ -133,8 +132,7 @@ class TestSystemLaunch(unittest.TestCase):
         )
 
     def test_no_node_crashes(self):
-        """Test that no nodes crash during execution"""
-
+        """Test that no nodes crash during execution."""
         # Spin for 60 seconds
         start_time = time.time()
         timeout = 60.0

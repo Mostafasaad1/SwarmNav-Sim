@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-evaluation.launch.py
-Launch file for evaluation nodes (coverage, collision, SLAM metrics)
+Launch file for evaluation nodes.
+
+Launches coverage, collision, and SLAM metrics evaluation nodes.
 """
 
-import os
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
@@ -13,8 +12,7 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """Generate launch description for evaluation nodes"""
-
+    """Generate launch description for evaluation nodes."""
     # Launch arguments
     num_robots_arg = DeclareLaunchArgument(
         'num_robots',

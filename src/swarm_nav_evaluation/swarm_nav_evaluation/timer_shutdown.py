@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-timer_shutdown.py
-Node that shuts down the ROS system after a configurable duration
-Used for automated evaluation runs with fixed time limits
+Timer-based shutdown node for evaluation runs.
+
+Shuts down the ROS system after a configurable duration for automated
+evaluation runs with fixed time limits.
 """
 
 import rclpy
@@ -10,7 +11,7 @@ from rclpy.node import Node
 
 
 class TimerShutdownNode(Node):
-    """Node that triggers system shutdown after a specified duration"""
+    """Node that triggers system shutdown after a specified duration."""
 
     def __init__(self):
         super().__init__('timer_shutdown')
@@ -31,7 +32,7 @@ class TimerShutdownNode(Node):
         )
 
     def shutdown_callback(self):
-        """Callback to shutdown the system"""
+        """Shut down the system."""
         self.get_logger().info('Evaluation duration reached. Shutting down...')
 
         # Cancel timer

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-coverage_evaluator.py
-Evaluates map coverage percentage for the swarm exploration mission
+Evaluates map coverage percentage for the swarm exploration mission.
+
+Calculates and tracks coverage metrics over time.
 """
 
 import rclpy
@@ -9,7 +10,6 @@ from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 import numpy as np
 import json
-from datetime import datetime
 
 
 class CoverageEvaluator(Node):
@@ -25,7 +25,7 @@ class CoverageEvaluator(Node):
         self.evaluation_interval = self.get_parameter(
             'evaluation_interval').value
 
-        self.get_logger().info(f'Coverage Evaluator initialized')
+        self.get_logger().info('Coverage Evaluator initialized')
         self.get_logger().info(f'Output file: {self.output_file}')
         self.get_logger().info(
             f'Evaluation interval: {self.evaluation_interval}s')
@@ -52,11 +52,11 @@ class CoverageEvaluator(Node):
         self.get_logger().info('Coverage Evaluator ready')
 
     def map_callback(self, msg):
-        """Store latest map"""
+        """Store latest map."""
         self.latest_map = msg
 
     def evaluate_coverage(self):
-        """Calculate and log coverage percentage"""
+        """Calculate and log coverage percentage."""
         if self.latest_map is None:
             self.get_logger().warn('No map received yet')
             return
@@ -95,11 +95,14 @@ class CoverageEvaluator(Node):
         self.save_results()
 
     def save_results(self):
-        """Save coverage history to JSON file"""
+        """Save coverage history to JSON file."""
         output_data = {
             'evaluation_start': self.start_time.nanoseconds / 1e9,
             'coverage_history': self.coverage_history,
-            'final_coverage': self.coverage_history[-1]['coverage_percentage'] if self.coverage_history else 0.0
+            'final_coverage': (
+                self.coverage_history[-1]['coverage_percentage']
+                if self.coverage_history else 0.0
+            )
         }
 
         try:

@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 """
-test_collision_monitor.py
-Unit tests for collision monitor
+Unit tests for collision monitor.
+
+This module tests collision detection logic.
 """
 
 import pytest
 import math
-from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Point, Pose
+from geometry_msgs.msg import Pose
 
 
 def calculate_distance(pose1, pose2):
-    """Calculate Euclidean distance between two poses"""
+    """Calculate Euclidean distance between two poses."""
     dx = pose1.position.x - pose2.position.x
     dy = pose1.position.y - pose2.position.y
     return math.sqrt(dx * dx + dy * dy)
 
 
 def test_collision_detection_below_threshold():
-    """Test collision detection when distance is below threshold"""
-
+    """Test collision detection when distance is below threshold."""
     # Create two poses close together
     pose1 = Pose()
     pose1.position.x = 0.0
@@ -34,13 +33,15 @@ def test_collision_detection_below_threshold():
 
     collision_detected = distance < threshold
 
-    assert collision_detected, f"Expected collision (distance={distance:.2f} < threshold={threshold})"
+    assert collision_detected, (
+        f"Expected collision (distance={distance:.2f} < "
+        f"threshold={threshold})"
+    )
     assert distance == pytest.approx(0.3, abs=0.01)
 
 
 def test_collision_detection_above_threshold():
-    """Test no collision when distance is above threshold"""
-
+    """Test no collision when distance is above threshold."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0
@@ -54,13 +55,15 @@ def test_collision_detection_above_threshold():
 
     collision_detected = distance < threshold
 
-    assert not collision_detected, f"Expected no collision (distance={distance:.2f} >= threshold={threshold})"
+    assert not collision_detected, (
+        f"Expected no collision (distance={distance:.2f} >= "
+        f"threshold={threshold})"
+    )
     assert distance == pytest.approx(1.0, abs=0.01)
 
 
 def test_collision_detection_exact_threshold():
-    """Test collision detection at exact threshold"""
-
+    """Test collision detection at exact threshold."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0
@@ -75,12 +78,14 @@ def test_collision_detection_exact_threshold():
     collision_detected = distance < threshold
 
     # At exact threshold, should NOT be collision (< not <=)
-    assert not collision_detected, f"Expected no collision at exact threshold (distance={distance:.2f})"
+    assert not collision_detected, (
+        f"Expected no collision at exact threshold "
+        f"(distance={distance:.2f})"
+    )
 
 
 def test_collision_detection_diagonal():
-    """Test collision detection with diagonal distance"""
-
+    """Test collision detection with diagonal distance."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0
@@ -100,8 +105,7 @@ def test_collision_detection_diagonal():
 
 
 def test_collision_detection_same_position():
-    """Test collision detection when robots are at same position"""
-
+    """Test collision detection when robots are at same position."""
     pose1 = Pose()
     pose1.position.x = 1.0
     pose1.position.y = 2.0
@@ -120,8 +124,7 @@ def test_collision_detection_same_position():
 
 
 def test_collision_detection_far_apart():
-    """Test no collision when robots are far apart"""
-
+    """Test no collision when robots are far apart."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0
@@ -135,7 +138,10 @@ def test_collision_detection_far_apart():
 
     collision_detected = distance < threshold
 
-    assert not collision_detected, f"Expected no collision (distance={distance:.2f} >> threshold={threshold})"
+    assert not collision_detected, (
+        f"Expected no collision (distance={distance:.2f} >> "
+        f"threshold={threshold})"
+    )
     assert distance > 10.0
 
 

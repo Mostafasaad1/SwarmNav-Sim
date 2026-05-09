@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
 """
-warehouse_world.launch.py
-Launch file for warehouse world with configurable number of robots
+Launch file for warehouse world with configurable number of robots.
+
+Provides a warehouse environment for multi-robot testing.
 """
 
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
-from launch.conditions import IfCondition
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
-from launch_ros.actions import Node, PushRosNamespace
-from launch_ros.substitutions import FindPackageShare
+from launch.actions import DeclareLaunchArgument
 
 
 def generate_launch_description():
-    """Generate launch description for warehouse world"""
-
+    """Generate launch description for warehouse world."""
     # Package directories
     bringup_dir = get_package_share_directory('swarm_nav_bringup')
 
@@ -39,14 +34,6 @@ def generate_launch_description():
         default_value=os.path.join(bringup_dir, 'worlds', 'warehouse.world'),
         description='Path to warehouse world file'
     )
-
-    # Launch configuration
-    num_robots = LaunchConfiguration('num_robots')
-    use_sim_time = LaunchConfiguration('use_sim_time')
-    world_file = LaunchConfiguration('world_file')
-
-    # Robot state publisher for URDF
-    urdf_file = os.path.join(bringup_dir, 'urdf', 'swarm_robot.urdf.xacro')
 
     # Create launch description
     ld = LaunchDescription()

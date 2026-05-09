@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """
-slam_metrics.py
-Evaluates SLAM performance metrics (ATE - Absolute Trajectory Error)
+Evaluates SLAM performance metrics.
+
+Calculates Absolute Trajectory Error (ATE) for SLAM evaluation.
 """
 
 import rclpy
 from rclpy.node import Node
-from nav_msgs.msg import Odometry, Path
-from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Odometry
 import numpy as np
 import json
-from datetime import datetime
 
 
 class SlamMetrics(Node):
@@ -28,7 +27,7 @@ class SlamMetrics(Node):
         self.evaluation_interval = self.get_parameter(
             'evaluation_interval').value
 
-        self.get_logger().info(f'SLAM Metrics Evaluator initialized')
+        self.get_logger().info('SLAM Metrics Evaluator initialized')
         self.get_logger().info(f'Monitoring {self.num_robots} robots')
 
         # Storage for trajectories
@@ -76,7 +75,7 @@ class SlamMetrics(Node):
         self.get_logger().info('SLAM Metrics Evaluator ready')
 
     def slam_callback(self, msg, robot_id):
-        """Store SLAM estimated pose"""
+        """Store SLAM estimated pose."""
         pose = {
             'timestamp': self.get_clock().now().nanoseconds / 1e9,
             'x': msg.pose.pose.position.x,
@@ -86,7 +85,7 @@ class SlamMetrics(Node):
         self.slam_trajectories[robot_id].append(pose)
 
     def ground_truth_callback(self, msg, robot_id):
-        """Store ground truth pose"""
+        """Store ground truth pose."""
         pose = {
             'timestamp': self.get_clock().now().nanoseconds / 1e9,
             'x': msg.pose.pose.position.x,
@@ -96,7 +95,7 @@ class SlamMetrics(Node):
         self.ground_truth_trajectories[robot_id].append(pose)
 
     def evaluate_metrics(self):
-        """Calculate ATE (Absolute Trajectory Error) for each robot"""
+        """Calculate ATE (Absolute Trajectory Error) for each robot."""
         elapsed_time = (self.get_clock().now() -
                         self.start_time).nanoseconds / 1e9
 
@@ -146,7 +145,7 @@ class SlamMetrics(Node):
         self.save_results()
 
     def calculate_ate(self, slam_traj, gt_traj):
-        """Calculate Absolute Trajectory Error (ATE) RMSE"""
+        """Calculate Absolute Trajectory Error (ATE) RMSE."""
         # Simplified ATE calculation
         # In production, should use proper trajectory alignment (e.g., Umeyama)
 
@@ -171,12 +170,15 @@ class SlamMetrics(Node):
         return float(rmse)
 
     def save_results(self):
-        """Save metrics to JSON file"""
+        """Save metrics to JSON file."""
         output_data = {
             'evaluation_start': self.start_time.nanoseconds / 1e9,
             'num_robots': self.num_robots,
             'metrics_history': self.metrics_history,
-            'final_average_ate': self.metrics_history[-1]['average_ate_rmse'] if self.metrics_history else 0.0
+            'final_average_ate': (
+                self.metrics_history[-1]['average_ate_rmse']
+                if self.metrics_history else 0.0
+            )
         }
 
         try:
