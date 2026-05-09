@@ -11,11 +11,15 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     GroupAction,
+    IncludeLaunchDescription,
     OpaqueFunction,
 )
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node, PushRosNamespace
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node, PushRosNamespace, LifecycleNode
+from launch_ros.substitutions import FindPackageShare
+from nav2_common.launch import RewrittenYaml
 
 
 def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
@@ -28,6 +32,17 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
     
     # SLAM configuration
     slam_config = os.path.join(bringup_dir, 'config', 'mrg_slam_multirobot.yaml')
+    
+    # Nav2 configuration
+    nav2_config = os.path.join(bringup_dir, 'config', 'robot_nav2.yaml')
+    
+    # Rewrite Nav2 config with namespace
+    configured_params = RewrittenYaml(
+        source_file=nav2_config,
+        root_key=robot_namespace,
+        param_rewrites={},
+        convert_types=True
+    )
     
     # Group all robot nodes under namespace
     robot_group = GroupAction([
@@ -104,9 +119,59 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             output='screen'
         ),
         
-        # TODO: Add mrg_slam node when package is integrated
-        # TODO: Add Nav2 lifecycle manager and nodes (planner, controller, bt_navigator)
-        # TODO: Add BehaviorTree executor node for mission coordination
+        # Nav2 Controller Server
+        LifecycleNode(
+            package='nav2_controller',
+            executable='controller_server',
+            name='controller_server',
+            output='screen',
+            parameters=[configured_params],
+        ),
+        
+        # Nav2 Planner Server
+        LifecycleNode(
+            package='nav2_planner',
+            executable='planner_server',
+            name='planner_server',
+            output='screen',
+            parameters=[configured_params],
+        ),
+        
+        # Nav2 Behavior Server
+        LifecycleNode(
+            package='nav2_behaviors',
+            executable='behavior_server',
+            name='behavior_server',
+            output='screen',
+            parameters=[configured_params],
+        ),
+        
+        # Nav2 BT Navigator
+        LifecycleNode(
+            package='nav2_bt_navigator',
+            executable='bt_navigator',
+            name='bt_navigator',
+            output='screen',
+            parameters=[configured_params],
+        ),
+        
+        # Nav2 Lifecycle Manager
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_navigation',
+            output='screen',
+            parameters=[{
+                'use_sim_time': True,
+                'autostart': True,
+                'node_names': [
+                    'controller_server',
+                    'planner_server',
+                    'behavior_server',
+                    'bt_navigator'
+                ]
+            }]
+        ),
     ])
     
     return robot_group
@@ -157,8 +222,31 @@ def generate_launch_description():
         description='Launch RViz for visualization'
     )
     
+    simulator_arg = DeclareLaunchArgument(
+        'simulator',
+        default_value='gazebo',
+        description='Simulator backend to use (gazebo, coppeliasim, or none)'
+    )
+    
     # Get launch configurations
     use_rviz = LaunchConfiguration('use_rviz')
+    simulator = LaunchConfiguration('simulator')
+    
+    # Include simulator launch file based on simulator argument
+    gazebo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare('swarm_nav_bringup'),
+                'launch',
+                'gazebo.launch.py'
+            ])
+        ]),
+        launch_arguments={
+            'num_robots': LaunchConfiguration('num_robots'),
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+        }.items(),
+        condition=IfCondition(LaunchConfiguration('simulator'))
+    )
     
     # Create launch description
     ld = LaunchDescription()
@@ -167,6 +255,10 @@ def generate_launch_description():
     ld.add_action(num_robots_arg)
     ld.add_action(use_sim_time_arg)
     ld.add_action(use_rviz_arg)
+    ld.add_action(simulator_arg)
+    
+    # Add simulator launch
+    ld.add_action(gazebo_launch)
     
     # Spawn robots dynamically based on num_robots parameter
     ld.add_action(OpaqueFunction(function=launch_robots))

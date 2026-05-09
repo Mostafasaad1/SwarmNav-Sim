@@ -30,6 +30,7 @@ setup(
             'coverage_evaluator.py = swarm_nav_evaluation.coverage_evaluator:main',
             'collision_monitor.py = swarm_nav_evaluation.collision_monitor:main',
             'slam_metrics.py = swarm_nav_evaluation.slam_metrics:main',
+            'timer_shutdown.py = swarm_nav_evaluation.timer_shutdown:main',
         ],
     },
 )

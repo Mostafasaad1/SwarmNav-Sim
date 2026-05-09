@@ -99,6 +99,8 @@ install(TARGETS
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+  
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
@@ -107,6 +109,26 @@ if(BUILD_TESTING)
   # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+  
+  # Unit tests
+  ament_add_gtest(test_orca_filter test/test_orca_filter.cpp)
+  target_include_directories(test_orca_filter PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  ament_target_dependencies(test_orca_filter
+    rclcpp
+    geometry_msgs
+  )
+  
+  ament_add_gtest(test_obstacle_tracker test/test_obstacle_tracker.cpp)
+  target_include_directories(test_obstacle_tracker PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  ament_target_dependencies(test_obstacle_tracker
+    rclcpp
+  )
 endif()
 
 ament_package()

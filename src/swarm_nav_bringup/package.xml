@@ -16,6 +16,16 @@
   <depend>sensor_msgs</depend>
   <depend>tf2_ros</depend>
 
+  <exec_depend>ros-humble-ros-gz</exec_depend>
+  <exec_depend>ros-humble-ros-gz-bridge</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>launch_testing_ament_cmake</test_depend>
+
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

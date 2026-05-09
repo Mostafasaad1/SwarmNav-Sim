@@ -28,11 +28,16 @@
           <Fallback name="NavigateToFrontier">
             <Sequence name="NavigationSequence">
               
-              <!-- TODO: Call Nav2 action to navigate to frontier -->
-              <AlwaysSuccess name="NavigateAction"/>
+              <!-- Call Nav2 action to navigate to frontier -->
+              <NavigateToPose goal="{assigned_frontier}" 
+                             server_name="navigate_to_pose"
+                             server_timeout="10"
+                             name="NavigateAction"/>
               
-              <!-- Wait for navigation to complete -->
-              <AlwaysSuccess name="WaitForNavigation"/>
+              <!-- Wait for navigation result -->
+              <WaitForActionResult server_name="navigate_to_pose"
+                                  timeout="300"
+                                  name="WaitForNavigation"/>
               
             </Sequence>
             
