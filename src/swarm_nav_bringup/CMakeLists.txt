@@ -39,6 +39,12 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Install Python scripts
+install(PROGRAMS
+  swarm_nav_bringup/simple_explorer.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # Install test files
 install(DIRECTORY
   test

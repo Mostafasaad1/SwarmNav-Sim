@@ -57,20 +57,23 @@ All documentation updated to reference Ignition Gazebo:
 colcon build --packages-select swarm_nav_bringup
 source install/setup.zsh
 
-# 3. Launch Ignition Gazebo
-ros2 launch swarm_nav_bringup ignition.launch.py
+# 3. Launch Ignition Gazebo with robots
+ros2 launch swarm_nav_bringup ignition_with_robots.launch.py num_robots:=3
 ```
 
 ### Launch Options
 ```bash
-# With GUI (default)
+# With 3 robots (default)
+ros2 launch swarm_nav_bringup ignition_with_robots.launch.py num_robots:=3
+
+# With 5 robots
+ros2 launch swarm_nav_bringup ignition_with_robots.launch.py num_robots:=5
+
+# Just the world (no robots)
 ros2 launch swarm_nav_bringup ignition.launch.py
 
 # Headless mode (no GUI)
 ros2 launch swarm_nav_bringup ignition.launch.py gui:=false
-
-# Verbose output
-ros2 launch swarm_nav_bringup ignition.launch.py verbose:=true
 ```
 
 ### Verify Installation
@@ -95,18 +98,17 @@ ros2 topic list
 - Ignition Gazebo launches successfully
 - Warehouse world loads with physics
 - GUI displays environment
-- Server and client processes running
+- **Robots spawn in the world (3-5 robots)**
+- Robot models visible with wheels and lidar
+- Robot state publishers running
 
-### ⚠️ Not Yet Working
-Robot nodes are disabled due to build errors:
+### ⚠️ Not Working Yet
+Robot navigation nodes are disabled due to build errors:
 - `swarm_nav_slam` - SLAM and graph merging
 - `swarm_nav_navigation` - ORCA filter, obstacle tracking  
 - `swarm_nav_coordination` - Frontier detection, auction
 
-These packages have `COLCON_IGNORE` files and need fixes:
-1. Missing `isClearable()` implementation in `DynamicObstacleLayer`
-2. Missing dependencies (tf2_ros, visualization_msgs)
-3. Missing `plugins.xml` file
+**Result**: Robots are visible but don't move autonomously yet.
 
 ---
 

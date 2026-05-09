@@ -55,14 +55,15 @@ source install/setup.zsh  # or setup.bash
 ## Step 3: Launch the System
 
 ```bash
-# Launch Ignition Gazebo with warehouse world
-ros2 launch swarm_nav_bringup ignition.launch.py
+# Launch Ignition Gazebo with 3 robots
+ros2 launch swarm_nav_bringup ignition_with_robots.launch.py num_robots:=3
 ```
 
 **What you'll see:**
 1. Ignition Gazebo window opens with warehouse environment
-2. Empty warehouse with walls and obstacles
-3. Terminal shows Ignition Gazebo startup logs
+2. 3 robots spawn at different positions in the warehouse
+3. Robots are visible but won't move yet (navigation nodes disabled)
+4. Terminal shows robot spawning logs
 
 **Estimated time**: 30 seconds to start
 

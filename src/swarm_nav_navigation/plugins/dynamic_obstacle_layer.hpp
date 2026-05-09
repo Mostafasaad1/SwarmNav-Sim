@@ -46,6 +46,7 @@ public:
   virtual void reset() override;
   virtual void activate() override;
   virtual void deactivate() override;
+  virtual bool isClearable() override { return false; }
 
 private:
   void obstacleCallback(const std::shared_ptr<rclcpp::SerializedMessage> msg);
