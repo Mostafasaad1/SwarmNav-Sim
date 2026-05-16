@@ -57,8 +57,7 @@ public:
     // Timer for periodic publishing
     timer_ = this->create_wall_timer(
       std::chrono::milliseconds(static_cast<int>(1000.0 / publish_rate)),
-      std::bind(&ObstacleTrackerNode::publishObstacles, this)
-    );
+      [this]() { this->publishObstacles(); });
 
     // Initialize some test obstacles (placeholder)
     initializeTestObstacles();

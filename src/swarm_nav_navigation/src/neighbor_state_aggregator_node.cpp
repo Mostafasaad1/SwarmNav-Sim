@@ -36,8 +36,9 @@ public:
     state_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborState>(
       "/swarm/robot_state",
       rclcpp::SensorDataQoS(),
-      std::bind(&NeighborStateAggregatorNode::stateCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::NeighborState::SharedPtr msg) {
+        this->stateCallback(msg);
+      });
 
     // Publisher for aggregated neighbor states
     array_pub_ = this->create_publisher<swarm_nav_msgs::msg::NeighborStateArray>(
@@ -48,14 +49,13 @@ public:
     // Timer for periodic publishing
     timer_ = this->create_wall_timer(
       std::chrono::milliseconds(static_cast<int>(1000.0 / publish_rate)),
-      std::bind(&NeighborStateAggregatorNode::publishArray, this)
-    );
+      [this]() { this->publishArray(); });
 
     RCLCPP_INFO(this->get_logger(), "Neighbor State Aggregator ready");
   }
 
 private:
-  void stateCallback(const swarm_nav_msgs::msg::NeighborState::SharedPtr msg)
+  void stateCallback(swarm_nav_msgs::msg::NeighborState::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(mutex_);
 

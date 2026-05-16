@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot name="swarm_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="namespace" default=""/>
   
   <!-- Robot Parameters -->
   <xacro:property name="base_radius" value="0.25"/>
@@ -152,23 +153,35 @@
     <origin xyz="${-base_radius + 0.05} 0 ${-base_height/2 - 0.025}" rpy="0 0 0"/>
   </joint>
   
-  <!-- Gazebo Plugins -->
+  <!-- Gazebo Plugins (Ignition Gazebo Fortress / ignition-gazebo6) -->
   <gazebo>
-    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+    <plugin filename="ignition-gazebo-diff-drive-system" name="ignition::gazebo::systems::DiffDrive">
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
       <wheel_separation>0.4</wheel_separation>
       <wheel_radius>0.05</wheel_radius>
       <odom_publish_frequency>20</odom_publish_frequency>
-      <topic>cmd_vel</topic>
-      <odom_topic>odom</odom_topic>
-      <frame_id>odom</frame_id>
-      <child_frame_id>base_footprint</child_frame_id>
+      <topic>$(arg namespace)/cmd_vel</topic>
+      <odom_topic>$(arg namespace)/odom</odom_topic>
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>false</publish_odom_tf>
+      <frame_id>$(arg namespace)/odom</frame_id>
+      <child_frame_id>$(arg namespace)/base_footprint</child_frame_id>
     </plugin>
+    
+    <plugin filename="ignition-gazebo-odometry-publisher-system" name="ignition::gazebo::systems::OdometryPublisher">
+      <odom_frame>$(arg namespace)/odom</odom_frame>
+      <robot_base_frame>$(arg namespace)/base_footprint</robot_base_frame>
+      <odom_topic>$(arg namespace)/odom_dummy</odom_topic>
+      <tf_topic>/model/$(arg namespace)/tf</tf_topic>
+      <dimensions>2</dimensions>
+      <odom_publish_frequency>20</odom_publish_frequency>
+    </plugin>
+
   </gazebo>
   
   <gazebo>
-    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+    <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher">
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
     </plugin>
@@ -176,7 +189,8 @@
   
   <gazebo reference="laser_link">
     <sensor name="laser_sensor" type="gpu_lidar">
-      <topic>scan</topic>
+      <topic>$(arg namespace)/scan</topic>
+      <gz_frame_id>$(arg namespace)/laser_link</gz_frame_id>
       <update_rate>10.0</update_rate>
       <lidar>
         <scan>

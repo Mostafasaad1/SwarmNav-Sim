@@ -45,15 +45,17 @@ public:
     neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
       "/swarm/neighbor_states",
       rclcpp::SensorDataQoS(),
-      std::bind(&GraphMergeNode::neighborCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg) {
+        this->neighborCallback(msg);
+      });
 
     // Subscribe to own map
     own_map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "map",
       rclcpp::QoS(10).transient_local(),
-      std::bind(&GraphMergeNode::ownMapCallback, this, std::placeholders::_1)
-    );
+      [this](nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+        this->ownMapCallback(msg);
+      });
 
     // Publisher for merged global map
     global_map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
@@ -64,8 +66,7 @@ public:
     // Create timer for periodic graph exchange checks
     timer_ = this->create_wall_timer(
       std::chrono::seconds(1),
-      std::bind(&GraphMergeNode::timerCallback, this)
-    );
+      [this]() { this->timerCallback(); });
   }
 
 private:

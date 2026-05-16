@@ -104,6 +104,7 @@ NAV2_PACKAGES=(
     "ros-humble-navigation2"
     "ros-humble-nav2-bringup"
     "ros-humble-nav2-costmap-2d"
+    "ros-humble-teb-local-planner"
     "ros-humble-pluginlib"
 )
 

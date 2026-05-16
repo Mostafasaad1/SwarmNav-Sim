@@ -44,9 +44,8 @@ For detailed architecture diagrams and data flow, see [ARCHITECTURE.md](ARCHITEC
 # 1. Install dependencies (requires sudo)
 ./setup_dependencies.sh
 
-# 2. Build workspace
-source /opt/ros/humble/setup.bash  # or setup.zsh
-colcon build
+# 2. Build workspace (using the robust build script)
+./build.sh
 
 # 3. Source the workspace
 source install/setup.bash  # or setup.zsh
@@ -55,16 +54,16 @@ source install/setup.bash  # or setup.zsh
 ### Launch
 
 ```bash
-# Launch Ignition Gazebo with 3 robots
-ros2 launch swarm_nav_bringup ignition_with_robots.launch.py num_robots:=3
+# Launch the full decentralized swarm in Gazebo Fortress
+ros2 launch swarm_nav_bringup swarm.launch.py num_robots:=3
 ```
 
 **What happens:**
-- Ignition Gazebo opens with warehouse environment
-- 3 robots spawn at different positions
-- Robots are visible with wheels and lidar sensors
-- Physics simulation runs
-- Robots don't move yet (navigation nodes need to be fixed)
+- Gazebo Fortress opens with the warehouse environment.
+- 3 robots spawn at predefined start positions.
+- Each robot initializes its own SLAM, Nav2, and coordination stack.
+- The robots begin autonomous exploration and coordinate tasks via auctions.
+- RViz opens to visualize the individual and global merged maps.
 
 ### Testing
 
@@ -234,11 +233,9 @@ See [TUNING.md](TUNING.md) for detailed parameter tuning guidance.
 
 ## Known Limitations
 
-1. **Simulator Not Integrated**: Requires Isaac Sim or Gazebo for full system testing
-2. **BehaviorTree.CPP v4**: Not installed - BT nodes won't build without it
-3. **Nav2 Costmap Plugin**: Not built - requires Nav2 installation
-4. **TF Transforms**: Graph merge uses simplified coordinate frame assumption
-5. **Nav2 Lifecycle**: Lifecycle manager not configured (nodes run standalone)
+1. **TF Transforms**: Graph merge uses simplified coordinate frame assumption for map overlay.
+2. **Dynamic Obstacle Variation**: Current obstacle tracker uses fixed hardcoded positions/trajectories.
+3. **Scaling**: Performance beyond 5 robots requires tuning the auction timeout parameters.
 
 ## Documentation
 

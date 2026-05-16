@@ -6,7 +6,7 @@ bt_navigator:
     use_sim_time: true
     global_frame: map
     robot_base_frame: base_footprint
-    odom_topic: /odom
+    odom_topic: odom
     bt_loop_duration: 10
     default_server_timeout: 20
     enable_groot_monitoring: true
@@ -44,7 +44,6 @@ bt_navigator:
     - nav2_planner_selector_bt_node
     - nav2_controller_selector_bt_node
     - nav2_goal_checker_selector_bt_node
-    - swarm_bt_nodes
 
 controller_server:
   ros__parameters:
@@ -71,80 +70,37 @@ controller_server:
       xy_goal_tolerance: 0.25
       yaw_goal_tolerance: 0.25
 
-    # TEB Local Planner
+    # Regulated Pure Pursuit Controller
     FollowPath:
-      plugin: "nav2_teb_controller::TebController"
-      teb_autosize: true
-      dt_ref: 0.3
-      dt_hysteresis: 0.1
-      max_samples: 500
-      global_plan_overwrite_orientation: true
-      allow_init_with_backwards_motion: false
-      max_global_plan_lookahead_dist: 3.0
-      global_plan_viapoint_sep: -1
-      global_plan_prune_distance: 1.0
-      exact_arc_length: false
-      feasibility_check_no_poses: 5
-      publish_feedback: false
-
-      # Robot configuration
-      max_vel_x: 0.5
-      max_vel_x_backwards: 0.2
-      max_vel_y: 0.0
-      max_vel_theta: 1.0
-      acc_lim_x: 0.5
-      acc_lim_theta: 1.0
-      min_turning_radius: 0.0
-      wheelbase: 0.0
-      cmd_angle_instead_rotvel: false
-      footprint_model:
-        type: "circular"
-        radius: 0.25
-
-      # Goal tolerance
-      xy_goal_tolerance: 0.2
-      yaw_goal_tolerance: 0.1
-      free_goal_vel: false
-      complete_global_plan: true
-
-      # Obstacles
-      min_obstacle_dist: 0.3
-      inflation_dist: 0.6
-      include_costmap_obstacles: true
-      costmap_obstacles_behind_robot_dist: 1.5
-      obstacle_poses_affected: 15
-      dynamic_obstacle_inflation_dist: 0.6
-      include_dynamic_obstacles: true
-
-      # Optimization
-      no_inner_iterations: 5
-      no_outer_iterations: 4
-      optimization_activate: true
-      optimization_verbose: false
-      penalty_epsilon: 0.1
-      obstacle_cost_exponent: 4
-      weight_max_vel_x: 2
-      weight_max_vel_theta: 1
-      weight_acc_lim_x: 1
-      weight_acc_lim_theta: 1
-      weight_kinematics_nh: 1000
-      weight_kinematics_forward_drive: 1
-      weight_kinematics_turning_radius: 1
-      weight_optimaltime: 1
-      weight_shortest_path: 0
-      weight_obstacle: 100
-      weight_inflation: 0.2
-      weight_dynamic_obstacle: 10
-      weight_dynamic_obstacle_inflation: 0.2
-      weight_viapoint: 1
-      weight_adapt_factor: 2
+      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
+      desired_linear_vel: 0.5
+      lookahead_dist: 0.6
+      min_lookahead_dist: 0.3
+      max_lookahead_dist: 0.9
+      lookahead_time: 1.5
+      rotate_to_heading_angular_vel: 1.8
+      transform_tolerance: 0.1
+      use_velocity_scaled_lookahead_dist: false
+      min_approach_linear_velocity: 0.05
+      approach_velocity_scaling_dist: 0.6
+      use_collision_detection: true
+      max_allowed_time_to_collision_up_to_carrot: 1.0
+      use_regulated_linear_velocity_scaling: true
+      use_cost_regulated_linear_velocity_scaling: false
+      regulated_linear_velocity_scaling_min_radius: 0.9
+      regulated_linear_velocity_scaling_min_approach_dist: 0.3
+      use_rotate_to_heading: true
+      allow_reversing: false
+      rotate_to_heading_min_angle: 0.785
+      max_angular_accel: 3.2
+      max_robot_pose_search_dist: 10.0
 
 local_costmap:
   local_costmap:
     ros__parameters:
       update_frequency: 5.0
       publish_frequency: 2.0
-      global_frame: odom
+      global_frame: ROBOT_ODOM_FRAME
       robot_base_frame: base_footprint
       use_sim_time: true
       rolling_window: true
@@ -223,12 +179,12 @@ behavior_server:
     cycle_frequency: 10.0
     behavior_plugins: [ "spin", "backup", "wait" ]
     spin:
-      plugin: "nav2_behaviors::Spin"
+      plugin: "nav2_behaviors/Spin"
     backup:
-      plugin: "nav2_behaviors::BackUp"
+      plugin: "nav2_behaviors/BackUp"
     wait:
-      plugin: "nav2_behaviors::Wait"
-    global_frame: odom
+      plugin: "nav2_behaviors/Wait"
+    global_frame: ROBOT_ODOM_FRAME
     robot_base_frame: base_footprint
     transform_tolerance: 0.1
     use_sim_time: true

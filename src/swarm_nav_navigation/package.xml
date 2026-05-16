@@ -16,6 +16,7 @@
   <depend>sensor_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>nav2_core</depend>
+  <depend>swarm_nav_msgs</depend>
   <depend>nav2_costmap_2d</depend>
   <depend>pluginlib</depend>
 

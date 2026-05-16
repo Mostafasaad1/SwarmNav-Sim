@@ -5,7 +5,7 @@
 #include <nav2_costmap_2d/costmap_math.hpp>
 #include <pluginlib/class_list_macros.hpp>
 #include "swarm_nav_msgs/msg/obstacle_array.hpp"
-#include <rclcpp/serialization.hpp>
+
 
 PLUGINLIB_EXPORT_CLASS(swarm_nav_navigation::DynamicObstacleLayer, nav2_costmap_2d::Layer)
 
@@ -49,52 +49,42 @@ void DynamicObstacleLayer::onInitialize()
     inflation_radius_, prediction_time_);
 
   // Subscribe to tracked obstacles
-  obstacle_sub_ = node->create_subscription<rclcpp::SerializedMessage>(
+  obstacle_sub_ = node->create_subscription<swarm_nav_msgs::msg::ObstacleArray>(
     "/swarm/tracked_obstacles",
     rclcpp::SensorDataQoS(),
-    std::bind(&DynamicObstacleLayer::obstacleCallback, this, std::placeholders::_1));
+    [this](swarm_nav_msgs::msg::ObstacleArray::SharedPtr msg) {
+      this->obstacleCallback(msg);
+    });
 
   current_ = true;
 }
 
 void DynamicObstacleLayer::obstacleCallback(
-  const std::shared_ptr<rclcpp::SerializedMessage> msg)
+  swarm_nav_msgs::msg::ObstacleArray::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(obstacles_mutex_);
 
-  // Deserialize ObstacleArray message
-  rclcpp::Serialization<swarm_nav_msgs::msg::ObstacleArray> serializer;
-  swarm_nav_msgs::msg::ObstacleArray obstacle_array;
+  auto node = node_.lock();
+  rclcpp::Time now = node->now();
 
-  try {
-    serializer.deserialize_message(msg.get(), &obstacle_array);
+  // Clear old obstacles and update with new data
+  obstacles_.clear();
 
-    auto node = node_.lock();
-    rclcpp::Time now = node->now();
+  for (const auto & obs_msg : msg->obstacles) {
+    DynamicObstacle obstacle;
+    obstacle.id = obs_msg.id;
+    obstacle.pose = obs_msg.pose;
+    obstacle.velocity = obs_msg.velocity;
+    obstacle.radius = obs_msg.radius;
+    obstacle.classification = obs_msg.classification;
+    obstacle.last_seen = now;
 
-    // Clear old obstacles and update with new data
-    obstacles_.clear();
-
-    for (const auto & obs_msg : obstacle_array.obstacles) {
-      DynamicObstacle obstacle;
-      obstacle.id = obs_msg.id;
-      obstacle.pose = obs_msg.pose;
-      obstacle.velocity = obs_msg.velocity;
-      obstacle.radius = obs_msg.radius;
-      obstacle.classification = obs_msg.classification;
-      obstacle.last_seen = now;
-
-      obstacles_.push_back(obstacle);
-    }
-
-    RCLCPP_DEBUG(
-      node_.lock()->get_logger(),
-      "Received %zu obstacles", obstacles_.size());
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(
-      node_.lock()->get_logger(),
-      "Failed to deserialize obstacle message: %s", e.what());
+    obstacles_.push_back(obstacle);
   }
+
+  RCLCPP_DEBUG(
+    node_.lock()->get_logger(),
+    "Received %zu obstacles", obstacles_.size());
 }
 
 void DynamicObstacleLayer::updateBounds(

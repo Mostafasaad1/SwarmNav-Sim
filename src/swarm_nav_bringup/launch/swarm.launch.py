@@ -6,6 +6,8 @@ Launches all robots with SLAM, navigation, and coordination nodes.
 """
 
 import os
+import tempfile
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
@@ -17,9 +19,31 @@ from launch.actions import (
 from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node, PushRosNamespace, LifecycleNode
+from launch_ros.actions import Node, PushRosNamespace, LifecycleNode, SetRemap
 from launch_ros.substitutions import FindPackageShare
-from nav2_common.launch import RewrittenYaml
+
+
+def make_robot_nav2_params(nav2_config_path, robot_namespace):
+    """Read the base yaml, substitute robot-specific values, write a temp file."""
+    with open(nav2_config_path, 'r') as f:
+        content = f.read()
+
+    # String-replace all placeholder tokens
+    content = content.replace('ROBOT_ODOM_FRAME', f'{robot_namespace}/odom')
+    content = content.replace('base_footprint', f'{robot_namespace}/base_footprint')
+    content = content.replace('odom_topic: odom', f'odom_topic: /{robot_namespace}/odom')
+    content = content.replace('topic: /scan', f'topic: /{robot_namespace}/scan')
+    # Wrap under robot namespace root key
+    data = yaml.safe_load(content)
+    wrapped = {robot_namespace: data}
+
+    tmp = tempfile.NamedTemporaryFile(
+        mode='w', suffix='.yaml', delete=False,
+        prefix=f'nav2_{robot_namespace}_'
+    )
+    yaml.dump(wrapped, tmp)
+    tmp.flush()
+    return tmp.name
 
 
 def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
@@ -29,36 +53,28 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
     # Robot namespace
     robot_namespace = f'robot_{robot_id}'
 
-    # Nav2 configuration
+    # Nav2 configuration — generate a per-robot resolved yaml
     nav2_config = os.path.join(bringup_dir, 'config', 'robot_nav2.yaml')
-
-    # Rewrite Nav2 config with namespace
-    configured_params = RewrittenYaml(
-        source_file=nav2_config,
-        root_key=robot_namespace,
-        param_rewrites={},
-        convert_types=True
-    )
+    configured_params = make_robot_nav2_params(nav2_config, robot_namespace)
 
     # Group all robot nodes under namespace
     robot_group = GroupAction([
         PushRosNamespace(robot_namespace),
+        SetRemap('tf', '/tf'),
+        SetRemap('tf_static', '/tf_static'),
 
-        # Robot state publisher
+        # Static transform: map -> robot_N/odom (placeholder until SLAM provides it)
         Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            name='robot_state_publisher',
-            parameters=[{
-                'use_sim_time': True,
-                'robot_description': Command([
-                    'xacro ',
-                    os.path.join(
-                        bringup_dir, 'urdf', 'swarm_robot.urdf.xacro'
-                    )
-                ]),
-                'frame_prefix': f'{robot_namespace}/'
-            }]
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='static_map_odom',
+            arguments=[
+                str(x_pos), str(y_pos), '0',  # x y z
+                str(yaw), '0', '0',           # yaw pitch roll
+                'map',
+                f'{robot_namespace}/odom'
+            ],
+            parameters=[{'use_sim_time': True}],
         ),
 
         # Graph merge node for multi-robot SLAM
@@ -240,7 +256,7 @@ def generate_launch_description():
             PathJoinSubstitution([
                 FindPackageShare('swarm_nav_bringup'),
                 'launch',
-                'gazebo.launch.py'
+                'fortress.launch.py'
             ])
         ]),
         launch_arguments={

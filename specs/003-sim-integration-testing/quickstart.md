@@ -27,25 +27,16 @@ To see what would be installed without executing:
 ## 2. Build the Workspace
 
 ```bash
-source /opt/ros/humble/setup.bash
-colcon build --symlink-install
-source install/setup.bash
+./build.sh
+source install/setup.bash  # or setup.zsh
 ```
 
-**Expected**: All packages build, including BT nodes and DynamicObstacleLayer plugin.
+**Expected**: All packages build, including BT nodes and DynamicObstacleLayer plugin. This script bypasses common colcon environment issues.
 
 ## 3. Launch the Simulation
 
-### Gazebo Fortress (default)
-
 ```bash
-ros2 launch swarm_nav_bringup swarm.launch.py num_robots:=3 simulator:=gazebo
-```
-
-### CoppeliaSim (optional, requires external install)
-
-```bash
-ros2 launch swarm_nav_bringup swarm.launch.py num_robots:=3 simulator:=coppeliasim
+ros2 launch swarm_nav_bringup swarm.launch.py num_robots:=3
 ```
 
 ## 4. Verify System is Running

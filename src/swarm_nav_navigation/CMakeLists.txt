@@ -13,6 +13,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 # Executables
 add_executable(neighbor_state_aggregator_node src/neighbor_state_aggregator_node.cpp)
@@ -22,7 +23,7 @@ ament_target_dependencies(neighbor_state_aggregator_node
 
 add_executable(orca_velocity_filter_node src/orca_velocity_filter_node.cpp)
 ament_target_dependencies(orca_velocity_filter_node
-  rclcpp swarm_nav_msgs geometry_msgs
+  rclcpp swarm_nav_msgs geometry_msgs tf2_ros
 )
 
 add_executable(obstacle_tracker_node src/obstacle_tracker_node.cpp)

@@ -48,8 +48,9 @@ public:
     map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "map",
       rclcpp::QoS(10).transient_local(),
-      std::bind(&FrontierDetectorNode::mapCallback, this, std::placeholders::_1)
-    );
+      [this](nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+        this->mapCallback(msg);
+      });
 
     // Publisher for detected frontiers
     frontier_pub_ = this->create_publisher<swarm_nav_msgs::msg::FrontierArray>(

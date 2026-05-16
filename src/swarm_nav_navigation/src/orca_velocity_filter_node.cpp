@@ -62,22 +62,25 @@ public:
     cmd_vel_nav2_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel_nav2",
       10,
-      std::bind(&OrcaVelocityFilterNode::cmdVelNav2Callback, this, std::placeholders::_1)
-    );
+      [this](geometry_msgs::msg::Twist::SharedPtr msg) {
+        this->cmdVelNav2Callback(msg);
+      });
 
     // Subscribe to own odometry
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
       "odom",
       10,
-      std::bind(&OrcaVelocityFilterNode::odomCallback, this, std::placeholders::_1)
-    );
+      [this](nav_msgs::msg::Odometry::SharedPtr msg) {
+        this->odomCallback(msg);
+      });
 
     // Subscribe to neighbor states
     neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
       "/swarm/neighbor_states",
       rclcpp::SensorDataQoS(),
-      std::bind(&OrcaVelocityFilterNode::neighborCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg) {
+        this->neighborCallback(msg);
+      });
 
     // Publish filtered safe velocity
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
@@ -90,14 +93,13 @@ public:
     // Timer to publish own state
     state_timer_ = this->create_wall_timer(
       std::chrono::milliseconds(100),
-      std::bind(&OrcaVelocityFilterNode::publishOwnState, this)
-    );
+      [this]() { this->publishOwnState(); });
 
     RCLCPP_INFO(this->get_logger(), "ORCA Velocity Filter ready");
   }
 
 private:
-  void cmdVelNav2Callback(const geometry_msgs::msg::Twist::SharedPtr msg)
+  void cmdVelNav2Callback(geometry_msgs::msg::Twist::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -117,13 +119,13 @@ private:
       safe_velocity.linear.x, safe_velocity.angular.z);
   }
 
-  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+  void odomCallback(nav_msgs::msg::Odometry::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(mutex_);
     current_odom_ = *msg;
   }
 
-  void neighborCallback(const swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg)
+  void neighborCallback(swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(mutex_);
 

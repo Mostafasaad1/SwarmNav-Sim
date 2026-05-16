@@ -49,7 +49,7 @@ public:
   virtual bool isClearable() override { return false; }
 
 private:
-  void obstacleCallback(const std::shared_ptr<rclcpp::SerializedMessage> msg);
+  void obstacleCallback(swarm_nav_msgs::msg::ObstacleArray::SharedPtr msg);
 
   void inflateObstacle(
     nav2_costmap_2d::Costmap2D & master_grid,
@@ -63,7 +63,7 @@ private:
     double obstacle_radius,
     double decay_factor);
 
-  rclcpp::Subscription<rclcpp::SerializedMessage>::SharedPtr obstacle_sub_;
+  rclcpp::Subscription<swarm_nav_msgs::msg::ObstacleArray>::SharedPtr obstacle_sub_;
 
   std::vector<DynamicObstacle> obstacles_;
   std::mutex obstacles_mutex_;

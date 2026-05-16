@@ -65,36 +65,34 @@ public:
     // Subscribe to own odometry for position
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
       "odom", 10,
-      std::bind(&AuctioneerNode::odomCallback, this, std::placeholders::_1)
-    );
+      [this](nav_msgs::msg::Odometry::SharedPtr msg) {this->odomCallback(msg);});
 
     // Subscribers
     frontier_sub_ = this->create_subscription<swarm_nav_msgs::msg::FrontierArray>(
       "frontiers", 10,
-      std::bind(&AuctioneerNode::frontierCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::FrontierArray::SharedPtr msg) {this->frontierCallback(msg);});
 
     auction_announce_sub_ = this->create_subscription<swarm_nav_msgs::msg::AuctionAnnounce>(
       "/swarm/auction/announce", 10,
-      std::bind(&AuctioneerNode::auctionAnnounceCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::AuctionAnnounce::SharedPtr msg) {
+        this->auctionAnnounceCallback(msg);
+      });
 
     bid_sub_ = this->create_subscription<swarm_nav_msgs::msg::AuctionBid>(
       "/swarm/auction/bid", 10,
-      std::bind(&AuctioneerNode::bidCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::AuctionBid::SharedPtr msg) {this->bidCallback(msg);});
 
     result_sub_ = this->create_subscription<swarm_nav_msgs::msg::AuctionResult>(
       "/swarm/auction/result", 10,
-      std::bind(&AuctioneerNode::resultCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::AuctionResult::SharedPtr msg) {this->resultCallback(msg);});
 
     // Subscribe to neighbor states for obstacle density estimation
     neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
       "/swarm/neighbor_states",
       rclcpp::SensorDataQoS(),
-      std::bind(&AuctioneerNode::neighborCallback, this, std::placeholders::_1)
-    );
+      [this](swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg) {
+        this->neighborCallback(msg);
+      });
 
     // Publishers
     announce_pub_ = this->create_publisher<swarm_nav_msgs::msg::AuctionAnnounce>(
@@ -112,8 +110,7 @@ public:
     // Timer for auction state machine
     timer_ = this->create_wall_timer(
       std::chrono::milliseconds(100),
-      std::bind(&AuctioneerNode::timerCallback, this)
-    );
+      [this]() {this->timerCallback();});
 
     RCLCPP_INFO(this->get_logger(), "Auctioneer ready");
   }
