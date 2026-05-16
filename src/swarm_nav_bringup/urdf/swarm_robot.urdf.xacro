@@ -153,9 +153,9 @@
     <origin xyz="${-base_radius + 0.05} 0 ${-base_height/2 - 0.025}" rpy="0 0 0"/>
   </joint>
   
-  <!-- Gazebo Plugins (Ignition Gazebo Fortress / ignition-gazebo6) -->
+  <!-- Gazebo Plugins (Gazebo Harmonic / gz-sim8) -->
   <gazebo>
-    <plugin filename="ignition-gazebo-diff-drive-system" name="ignition::gazebo::systems::DiffDrive">
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
       <wheel_separation>0.4</wheel_separation>
@@ -169,7 +169,7 @@
       <child_frame_id>$(arg namespace)/base_footprint</child_frame_id>
     </plugin>
     
-    <plugin filename="ignition-gazebo-odometry-publisher-system" name="ignition::gazebo::systems::OdometryPublisher">
+    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
       <odom_frame>$(arg namespace)/odom</odom_frame>
       <robot_base_frame>$(arg namespace)/base_footprint</robot_base_frame>
       <odom_topic>$(arg namespace)/odom_dummy</odom_topic>
@@ -181,7 +181,7 @@
   </gazebo>
   
   <gazebo>
-    <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher">
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
     </plugin>

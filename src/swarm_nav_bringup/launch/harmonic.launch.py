@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-fortress.launch.py
-Unified Gazebo Fortress launch file for SwarmNav-Sim.
+harmonic.launch.py
+Unified Gazebo Harmonic launch file for SwarmNav-Sim.
 Spawns multiple robots with full topic bridges (cmd_vel, scan, odom, clock).
 """
 

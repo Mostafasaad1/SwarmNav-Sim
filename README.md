@@ -1,6 +1,6 @@
 # SwarmNav-Sim: Decentralized Multi-Robot Warehouse Exploration
 
-A ROS 2 Humble simulation system for decentralized multi-robot warehouse exploration using classical navigation and coordination algorithms.
+A ROS 2 Jazzy simulation system for decentralized multi-robot warehouse exploration using classical navigation and coordination algorithms.
 
 **Status**: Core implementation complete - all user stories implemented and verified (2026-05-09)
 
@@ -23,7 +23,7 @@ For detailed architecture diagrams and data flow, see [ARCHITECTURE.md](ARCHITEC
 ## Prerequisites
 
 - Ubuntu 22.04 LTS
-- ROS 2 Humble Hawksbill (desktop install)
+- ROS 2 Jazzy Jalisco (desktop install)
 - Python 3.10+
 - colcon build tool
 

@@ -7,7 +7,7 @@
 ## Prerequisites
 
 - Ubuntu 22.04
-- ROS 2 Humble (base install from `ros-humble-desktop`)
+- ROS 2 Jazzy (base install from `ros-jazzy-desktop`)
 - `colcon` build tools
 
 ## 1. Install Dependencies

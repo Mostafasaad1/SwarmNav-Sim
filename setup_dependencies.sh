@@ -1,60 +1,33 @@
 #!/bin/bash
 # setup_dependencies.sh
-# Installs all optional dependencies for SwarmNav-Sim
-# Usage: ./setup_dependencies.sh [--dry-run] [--no-sim] [--coppeliasim]
+# Installs all dependencies for SwarmNav-Sim on ROS 2 Jazzy + Gazebo Harmonic
+# Usage: ./setup_dependencies.sh [--dry-run] [--no-sim]
 
 set -e
 
-# Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Parse arguments
 DRY_RUN=false
 NO_SIM=false
-COPPELIASIM=false
 
 for arg in "$@"; do
     case $arg in
-        --dry-run)
-            DRY_RUN=true
-            shift
-            ;;
-        --no-sim)
-            NO_SIM=true
-            shift
-            ;;
-        --coppeliasim)
-            COPPELIASIM=true
-            shift
-            ;;
+        --dry-run) DRY_RUN=true; shift ;;
+        --no-sim) NO_SIM=true; shift ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
-            echo ""
-            echo "Options:"
-            echo "  --dry-run       Print actions without executing"
-            echo "  --no-sim        Skip simulator installation (for CI without GPU)"
-            echo "  --coppeliasim   Show CoppeliaSim setup instructions"
-            echo "  --help, -h      Show this help message"
-            echo ""
-            echo "This script installs optional dependencies for SwarmNav-Sim:"
-            echo "  - BehaviorTree.CPP v4"
-            echo "  - Nav2 navigation stack"
-            echo "  - Ignition Gazebo (Fortress) (unless --no-sim)"
-            echo "  - ROS 2 package dependencies via rosdep"
-            exit 0
-            ;;
+            echo "  --dry-run    Print actions without executing"
+            echo "  --no-sim     Skip Gazebo installation"
+            exit 0 ;;
         *)
             echo -e "${RED}Unknown option: $arg${NC}"
-            echo "Use --help for usage information"
-            exit 1
-            ;;
+            exit 1 ;;
     esac
 done
 
-# Function to run or print command
 run_cmd() {
     if [ "$DRY_RUN" = true ]; then
         echo -e "${YELLOW}[DRY-RUN]${NC} $*"
@@ -64,48 +37,51 @@ run_cmd() {
     fi
 }
 
-# Function to check if package is installed
-is_installed() {
-    dpkg -s "$1" &> /dev/null
-}
+is_installed() { dpkg -s "$1" &>/dev/null; }
 
 echo "========================================="
-echo "SwarmNav-Sim Dependency Setup"
+echo "SwarmNav-Sim Dependency Setup (ROS 2 Jazzy)"
 echo "========================================="
 echo ""
 
-# Check ROS 2 Humble
-echo -e "${GREEN}[1/5]${NC} Checking ROS 2 Humble..."
+# Check ROS 2 Jazzy
+echo -e "${GREEN}[1/5]${NC} Checking ROS 2 Jazzy..."
 if [ -z "$ROS_DISTRO" ]; then
     echo -e "${RED}ERROR: ROS 2 is not sourced. Please run:${NC}"
-    echo "  source /opt/ros/humble/setup.bash"
+    echo "  source /opt/ros/jazzy/setup.bash"
     exit 1
-elif [ "$ROS_DISTRO" != "humble" ]; then
-    echo -e "${RED}ERROR: ROS_DISTRO is '$ROS_DISTRO', but 'humble' is required.${NC}"
+elif [ "$ROS_DISTRO" != "jazzy" ]; then
+    echo -e "${RED}ERROR: ROS_DISTRO is '$ROS_DISTRO', but 'jazzy' is required.${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓${NC} ROS 2 Humble detected"
+echo -e "${GREEN}✓${NC} ROS 2 Jazzy detected"
 echo ""
 
-# Install BehaviorTree.CPP v4
-echo -e "${GREEN}[2/5]${NC} Installing BehaviorTree.CPP v4..."
-if is_installed "ros-humble-behaviortree-cpp"; then
-    echo -e "${YELLOW}✓${NC} ros-humble-behaviortree-cpp already installed (skipping)"
+# Install BehaviorTree.CPP
+echo -e "${GREEN}[2/5]${NC} Installing BehaviorTree.CPP..."
+if is_installed "ros-jazzy-behaviortree-cpp"; then
+    echo -e "${YELLOW}✓${NC} ros-jazzy-behaviortree-cpp already installed"
 else
-    run_cmd sudo apt-get update
-    run_cmd sudo apt-get install -y ros-humble-behaviortree-cpp
-    echo -e "${GREEN}✓${NC} BehaviorTree.CPP v4 installed"
+    run_cmd sudo apt-get update -qq
+    run_cmd sudo apt-get install -y ros-jazzy-behaviortree-cpp
+    echo -e "${GREEN}✓${NC} BehaviorTree.CPP installed"
 fi
 echo ""
 
-# Install Nav2 stack
-echo -e "${GREEN}[3/5]${NC} Installing Nav2 navigation stack..."
+# Install Nav2 + SLAM + RViz
+echo -e "${GREEN}[3/5]${NC} Installing Nav2 + SLAM + RViz..."
 NAV2_PACKAGES=(
-    "ros-humble-navigation2"
-    "ros-humble-nav2-bringup"
-    "ros-humble-nav2-costmap-2d"
-    "ros-humble-teb-local-planner"
-    "ros-humble-pluginlib"
+    "ros-jazzy-navigation2"
+    "ros-jazzy-nav2-bringup"
+    "ros-jazzy-nav2-costmap-2d"
+    "ros-jazzy-nav2-core"
+    "ros-jazzy-nav2-util"
+    "ros-jazzy-slam-toolbox"
+    "ros-jazzy-xacro"
+    "ros-jazzy-robot-state-publisher"
+    "ros-jazzy-tf2-tools"
+    "ros-jazzy-rviz2"
+    "ros-jazzy-rmw-cyclonedds-cpp"
 )
 
 NAV2_MISSING=()
@@ -116,90 +92,59 @@ for pkg in "${NAV2_PACKAGES[@]}"; do
 done
 
 if [ ${#NAV2_MISSING[@]} -eq 0 ]; then
-    echo -e "${YELLOW}✓${NC} All Nav2 packages already installed (skipping)"
+    echo -e "${YELLOW}✓${NC} All Nav2/SLAM packages already installed"
 else
-    echo "Installing ${#NAV2_MISSING[@]} Nav2 packages..."
-    run_cmd sudo apt-get update
+    echo "Installing ${#NAV2_MISSING[@]} packages..."
+    run_cmd sudo apt-get update -qq
     run_cmd sudo apt-get install -y "${NAV2_MISSING[@]}"
-    echo -e "${GREEN}✓${NC} Nav2 stack installed"
+    echo -e "${GREEN}✓${NC} Nav2 + SLAM + tools installed"
 fi
 echo ""
 
-# Install Gazebo Ignition (Fortress)
+# Install Gazebo Harmonic + ros_gz bridge
 if [ "$NO_SIM" = true ]; then
     echo -e "${GREEN}[4/5]${NC} Skipping Gazebo (--no-sim flag)"
 else
-    echo -e "${GREEN}[4/5]${NC} Installing Gazebo Ignition (Fortress)..."
+    echo -e "${GREEN}[4/5]${NC} Installing Gazebo Harmonic + ros_gz bridge..."
     GAZEBO_PACKAGES=(
-        "ignition-fortress"
-        "ros-humble-ros-gz"
-        "ros-humble-ros-gz-bridge"
-        "ros-humble-ros-gz-sim"
+        "gz-harmonic"
+        "ros-jazzy-ros-gz"
+        "ros-jazzy-ros-gz-bridge"
+        "ros-jazzy-ros-gz-sim"
+        "ros-jazzy-ros-gz-interfaces"
     )
-    
+
     GAZEBO_MISSING=()
     for pkg in "${GAZEBO_PACKAGES[@]}"; do
         if ! is_installed "$pkg"; then
             GAZEBO_MISSING+=("$pkg")
         fi
     done
-    
+
     if [ ${#GAZEBO_MISSING[@]} -eq 0 ]; then
-        echo -e "${YELLOW}✓${NC} All Gazebo packages already installed (skipping)"
+        echo -e "${YELLOW}✓${NC} All Gazebo packages already installed"
     else
         echo "Installing ${#GAZEBO_MISSING[@]} Gazebo packages..."
-        run_cmd sudo apt-get update
+        run_cmd sudo apt-get update -qq
         run_cmd sudo apt-get install -y "${GAZEBO_MISSING[@]}"
-        echo -e "${GREEN}✓${NC} Gazebo Ignition (Fortress) installed"
+        echo -e "${GREEN}✓${NC} Gazebo Harmonic installed"
     fi
 fi
 echo ""
 
-# Run rosdep
-echo -e "${GREEN}[5/5]${NC} Installing ROS 2 package dependencies..."
+# rosdep install
+echo -e "${GREEN}[5/5]${NC} Installing workspace ROS dependencies via rosdep..."
 run_cmd rosdep install --from-paths src --ignore-src -r -y
-echo -e "${GREEN}✓${NC} Package dependencies installed"
+echo -e "${GREEN}✓${NC} rosdep dependencies installed"
 echo ""
-
-# CoppeliaSim instructions
-if [ "$COPPELIASIM" = true ]; then
-    echo "========================================="
-    echo "CoppeliaSim Setup Instructions"
-    echo "========================================="
-    echo ""
-    echo "CoppeliaSim is an optional alternative simulator backend (Priority P3)."
-    echo ""
-    echo "1. Download CoppeliaSim EDU from:"
-    echo "   https://www.coppeliarobotics.com/downloads"
-    echo ""
-    echo "2. Extract and set environment variable:"
-    echo "   export COPPELIASIM_ROOT_DIR=/path/to/CoppeliaSim"
-    echo ""
-    echo "3. Clone and build simROS2 interface:"
-    echo "   cd \$COPPELIASIM_ROOT_DIR/programming"
-    echo "   git clone --recursive https://github.com/CoppeliaRobotics/simROS2.git"
-    echo "   cd simROS2"
-    echo "   colcon build --symlink-install"
-    echo ""
-    echo "4. Copy compiled plugin to CoppeliaSim:"
-    echo "   cp install/sim_ros2_interface/lib/libsimROS2.so \$COPPELIASIM_ROOT_DIR/"
-    echo ""
-    echo "5. Launch with CoppeliaSim backend:"
-    echo "   ros2 launch swarm_nav_bringup swarm.launch.py simulator:=coppeliasim"
-    echo ""
-fi
 
 echo "========================================="
 echo "Setup Complete!"
 echo "========================================="
 echo ""
 echo "Next steps:"
-echo "  1. Build the workspace:"
-echo "     colcon build --symlink-install"
-echo ""
-echo "  2. Source the workspace:"
-echo "     source install/setup.bash"
-echo ""
-echo "  3. Launch the simulation:"
-echo "     ros2 launch swarm_nav_bringup swarm.launch.py simulator:=gazebo num_robots:=3"
+echo "  1. source /opt/ros/jazzy/setup.bash"
+echo "  2. ./build.sh"
+echo "  3. source install/setup.bash"
+echo "  4. ros2 launch swarm_nav_bringup swarm.launch.py num_robots:=3"
 echo ""

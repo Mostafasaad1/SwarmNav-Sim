@@ -256,7 +256,7 @@ def generate_launch_description():
             PathJoinSubstitution([
                 FindPackageShare('swarm_nav_bringup'),
                 'launch',
-                'fortress.launch.py'
+                'harmonic.launch.py'
             ])
         ]),
         launch_arguments={
