@@ -93,6 +93,7 @@ def spawn_robots(context, *args, **kwargs):
                 f'/{robot_name}/odom@nav_msgs/msg/Odometry@gz.msgs.Odometry',
                 f'/{robot_name}/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
                 f'/model/{robot_name}/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
+                f'/{robot_name}/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model',
             ],
             remappings=[
                 (f'/model/{robot_name}/tf', '/tf'),

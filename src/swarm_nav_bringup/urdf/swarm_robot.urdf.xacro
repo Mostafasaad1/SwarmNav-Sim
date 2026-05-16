@@ -161,27 +161,22 @@
       <wheel_separation>0.4</wheel_separation>
       <wheel_radius>0.05</wheel_radius>
       <odom_publish_frequency>20</odom_publish_frequency>
-      <topic>$(arg namespace)/cmd_vel</topic>
-      <odom_topic>$(arg namespace)/odom</odom_topic>
+      <topic>/$(arg namespace)/cmd_vel</topic>
+      <odom_topic>/$(arg namespace)/odom</odom_topic>
+      <tf_topic>/model/$(arg namespace)/tf</tf_topic>
       <publish_odom>true</publish_odom>
-      <publish_odom_tf>false</publish_odom_tf>
+      <publish_odom_tf>true</publish_odom_tf>
       <frame_id>$(arg namespace)/odom</frame_id>
       <child_frame_id>$(arg namespace)/base_footprint</child_frame_id>
     </plugin>
     
-    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
-      <odom_frame>$(arg namespace)/odom</odom_frame>
-      <robot_base_frame>$(arg namespace)/base_footprint</robot_base_frame>
-      <odom_topic>$(arg namespace)/odom_dummy</odom_topic>
-      <tf_topic>/model/$(arg namespace)/tf</tf_topic>
-      <dimensions>2</dimensions>
-      <odom_publish_frequency>20</odom_publish_frequency>
-    </plugin>
+
 
   </gazebo>
   
   <gazebo>
     <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>/$(arg namespace)/joint_states</topic>
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
     </plugin>
@@ -190,6 +185,7 @@
   <gazebo reference="laser_link">
     <sensor name="laser_sensor" type="gpu_lidar">
       <topic>$(arg namespace)/scan</topic>
+      <gz_frame_id>$(arg namespace)/laser_link</gz_frame_id>
       <update_rate>10.0</update_rate>
       <lidar>
         <scan>
