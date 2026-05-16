@@ -184,7 +184,7 @@
   
   <gazebo reference="laser_link">
     <sensor name="laser_sensor" type="gpu_lidar">
-      <topic>$(arg namespace)/scan</topic>
+      <topic>/$(arg namespace)/scan</topic>
       <gz_frame_id>$(arg namespace)/laser_link</gz_frame_id>
       <update_rate>10.0</update_rate>
       <lidar>
