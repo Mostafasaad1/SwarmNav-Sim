@@ -48,7 +48,7 @@ public:
     this->declare_parameter("robot_id", "robot_0");
     this->declare_parameter("bid_timeout_ms", 500);
     this->declare_parameter("nominal_speed", 0.5);
-    this->declare_parameter("use_sim_time", true);
+    if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
 
     // Get parameters
     robot_id_ = this->get_parameter("robot_id").as_string();

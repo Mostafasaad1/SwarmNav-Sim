@@ -11,7 +11,7 @@ find_package(swarm_nav_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(behaviortree_cpp_v3 REQUIRED)
+find_package(behaviortree_cpp REQUIRED)
 
 # Executables
 add_executable(auctioneer_node src/auctioneer_node.cpp)
@@ -31,7 +31,7 @@ add_library(swarm_bt_nodes SHARED
   src/bt_nodes/run_auction_bt.cpp
 )
 ament_target_dependencies(swarm_bt_nodes
-  rclcpp behaviortree_cpp_v3 swarm_nav_msgs nav_msgs
+  rclcpp behaviortree_cpp swarm_nav_msgs nav_msgs
 )
 
 install(TARGETS

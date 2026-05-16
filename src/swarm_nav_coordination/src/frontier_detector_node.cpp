@@ -35,7 +35,7 @@ public:
     this->declare_parameter("robot_id", "robot_0");
     this->declare_parameter("min_frontier_size", 10);
     this->declare_parameter("frontier_travel_point_distance", 1.0);
-    this->declare_parameter("use_sim_time", true);
+    if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
 
     // Get parameters
     robot_id_ = this->get_parameter("robot_id").as_string();

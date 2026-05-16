@@ -39,7 +39,7 @@ public:
     this->declare_parameter("time_horizon", 2.0);
     this->declare_parameter("max_linear_velocity", 0.5);
     this->declare_parameter("max_angular_velocity", 1.0);
-    this->declare_parameter("use_sim_time", true);
+    if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
 
     // Get parameters
     robot_id_ = this->get_parameter("robot_id").as_string();

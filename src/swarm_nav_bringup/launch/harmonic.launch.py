@@ -42,7 +42,7 @@ def spawn_robots(context, *args, **kwargs):
         # 1. Process URDF with xacro (Python API is more robust for spawning)
         robot_description_config = xacro.process_file(
             urdf_file, 
-            mappings={'robot_name': robot_name}
+            mappings={'namespace': robot_name}
         )
         robot_desc = robot_description_config.toxml()
         

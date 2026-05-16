@@ -18,7 +18,7 @@ if [ -f install/setup.bash ]; then
     source install/setup.bash
 fi
 
-JOBS=$(nproc)
+JOBS=2
 echo "=== SwarmNav-Sim build ($JOBS jobs, ROS 2 Jazzy) ==="
 
 unset RMW_IMPLEMENTATION

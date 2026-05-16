@@ -34,7 +34,7 @@ public:
   : Node("obstacle_tracker_node")
   {
     // Declare parameters
-    this->declare_parameter("use_sim_time", true);
+    if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
     this->declare_parameter("publish_rate", 10.0);
     this->declare_parameter("obstacle_timeout", 2.0);
 

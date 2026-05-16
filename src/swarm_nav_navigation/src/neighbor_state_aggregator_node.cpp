@@ -22,7 +22,7 @@ public:
     // Declare parameters
     this->declare_parameter("publish_rate", 10.0);
     this->declare_parameter("state_timeout", 0.5);
-    this->declare_parameter("use_sim_time", true);
+    if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
 
     // Get parameters
     double publish_rate = this->get_parameter("publish_rate").as_double();
