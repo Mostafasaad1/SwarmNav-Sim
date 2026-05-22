@@ -162,9 +162,9 @@ void DynamicObstacleLayer::inflateObstacle(
 {
   // For DYNAMIC obstacles, inflate along predicted trajectory
   if (obstacle.classification == 2) {
-    // Sample multiple points along trajectory over 1.5s horizon
+    // Sample multiple points along trajectory over the prediction horizon
     int num_samples = 5;
-    double horizon = 1.5;
+    double horizon = prediction_time;
 
     for (int i = 0; i <= num_samples; ++i) {
       double t = (i * horizon) / num_samples;

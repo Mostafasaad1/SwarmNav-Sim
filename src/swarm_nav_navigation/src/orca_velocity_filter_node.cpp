@@ -149,11 +149,16 @@ private:
     RCLCPP_DEBUG(this->get_logger(), "Updated %zu neighbor states", neighbors_.size());
   }
 
+  double getYaw(const geometry_msgs::msg::Quaternion & q)
+  {
+    double siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
+    double cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+    return std::atan2(siny_cosp, cosy_cosp);
+  }
+
   geometry_msgs::msg::Twist computeOrcaVelocity(const geometry_msgs::msg::Twist & desired_vel)
   {
-    // Implement velocity obstacle (VO) algorithm
     // NOTE: Caller already holds mutex_, do not lock again
-
     geometry_msgs::msg::Twist safe_vel = desired_vel;
 
     // If no neighbors, return desired velocity
@@ -161,70 +166,156 @@ private:
       return safe_vel;
     }
 
-    // Check if desired velocity is in any velocity obstacle cone
-    bool in_collision = false;
+    // Get current robot yaw and position
+    double robot_yaw = getYaw(current_odom_.pose.pose.orientation);
+
+    // Transform desired velocity to world frame
+    // For a diff-drive robot, desired_vel is in body frame.
+    // desired_vel.linear.x is forward speed, desired_vel.linear.y is 0.
+    double desired_vx_world = desired_vel.linear.x * std::cos(robot_yaw) - desired_vel.linear.y * std::sin(robot_yaw);
+    double desired_vy_world = desired_vel.linear.x * std::sin(robot_yaw) + desired_vel.linear.y * std::cos(robot_yaw);
+
+    // We will start with the desired velocity in world frame and modify it to be safe
+    double safe_vx_world = desired_vx_world;
+    double safe_vy_world = desired_vy_world;
+
+    bool avoided_any = false;
 
     for (const auto & neighbor : neighbors_) {
-      // Calculate relative position
+      // Calculate relative position (neighbor wrt robot) in world frame
       double dx = neighbor.pose.position.x - current_odom_.pose.pose.position.x;
       double dy = neighbor.pose.position.y - current_odom_.pose.pose.position.y;
       double dist = std::sqrt(dx * dx + dy * dy);
 
-      // Skip if too far
+      // Skip if too far (e.g. outside 10m)
       if (dist > 10.0) {continue;}
 
       // Combined radius for collision
       double combined_radius = robot_radius_ + neighbor.radius;
 
-      // Check if we're in collision course
-      if (dist < combined_radius * 1.5) {
-        in_collision = true;
+      // Extract neighbor velocity in world frame
+      double neighbor_yaw = getYaw(neighbor.pose.orientation);
+      double neighbor_vx_world = neighbor.velocity.linear.x * std::cos(neighbor_yaw) - neighbor.velocity.linear.y * std::sin(neighbor_yaw);
+      double neighbor_vy_world = neighbor.velocity.linear.x * std::sin(neighbor_yaw) + neighbor.velocity.linear.y * std::cos(neighbor_yaw);
 
-        // Calculate velocity obstacle cone
-        // Cone apex is at neighbor's velocity
-        double neighbor_vx = neighbor.velocity.linear.x;
-        double neighbor_vy = neighbor.velocity.linear.y;
+      // Check if we will collide within time_horizon_
+      bool will_collide = false;
+      if (dist < combined_radius) {
+        will_collide = true;
+      } else {
+        // Calculate relative velocity in world frame
+        double rel_vx = safe_vx_world - neighbor_vx_world;
+        double rel_vy = safe_vy_world - neighbor_vy_world;
+        double rel_vel_sq = rel_vx * rel_vx + rel_vy * rel_vy;
 
-        // Calculate relative velocity
-        double rel_vx = safe_vel.linear.x - neighbor_vx;
-        double rel_vy = safe_vel.linear.y - neighbor_vy;
-
-        // Calculate angle to neighbor
-        double angle_to_neighbor = std::atan2(dy, dx);
-
-        // Calculate half-angle of VO cone
-        double half_angle = std::asin(std::min(1.0, combined_radius / dist));
-
-        // Calculate relative velocity angle
-        double rel_vel_angle = std::atan2(rel_vy, rel_vx);
-
-        // Check if relative velocity is inside VO cone
-        double angle_diff = std::abs(rel_vel_angle - angle_to_neighbor);
-        if (angle_diff > M_PI) {angle_diff = 2 * M_PI - angle_diff;}
-
-        if (angle_diff < half_angle) {
-          // Inside VO cone - project to nearest boundary
-          // Simple approach: reduce velocity magnitude
-          double scale = std::max(0.0, (dist - combined_radius) / (combined_radius * 0.5));
-          safe_vel.linear.x *= scale;
-          safe_vel.linear.y *= scale;
-
-          RCLCPP_WARN(
-            this->get_logger(),
-            "Avoiding collision with %s (%.2fm), scaling velocity to %.2f",
-            neighbor.robot_id.c_str(), dist, scale);
+        if (rel_vel_sq > 1e-6) {
+          // Time to closest approach
+          double t = (dx * rel_vx + dy * rel_vy) / rel_vel_sq;
+          if (t > 0.0 && t < time_horizon_) {
+            // Distance squared at closest approach
+            double cx = dx - rel_vx * t;
+            double cy = dy - rel_vy * t;
+            double dist_sq_closest = cx * cx + cy * cy;
+            if (dist_sq_closest < combined_radius * combined_radius) {
+              will_collide = true;
+            }
+          }
         }
+      }
+
+      if (will_collide) {
+        avoided_any = true;
+
+        if (dist < combined_radius) {
+          // Overlap: move directly away from neighbor
+          double dir_x = dx / (dist > 1e-3 ? dist : 1.0);
+          double dir_y = dy / (dist > 1e-3 ? dist : 1.0);
+          double rel_vx_safe = -dir_x * max_linear_vel_;
+          double rel_vy_safe = -dir_y * max_linear_vel_;
+          safe_vx_world = neighbor_vx_world + rel_vx_safe;
+          safe_vy_world = neighbor_vy_world + rel_vy_safe;
+        } else {
+          // Relative velocity relative to neighbor's velocity
+          double rel_vx = safe_vx_world - neighbor_vx_world;
+          double rel_vy = safe_vy_world - neighbor_vy_world;
+
+          // Half-angle of VO cone
+          double sin_phi = combined_radius / dist;
+          double phi = std::asin(std::min(1.0, sin_phi));
+
+          // Angle to neighbor
+          double theta = std::atan2(dy, dx);
+
+          // Tangent unit vectors
+          double alpha1 = theta - phi;
+          double alpha2 = theta + phi;
+          double t1_x = std::cos(alpha1);
+          double t1_y = std::sin(alpha1);
+          double t2_x = std::cos(alpha2);
+          double t2_y = std::sin(alpha2);
+
+          // Project relative velocity onto tangent rays
+          double proj1 = rel_vx * t1_x + rel_vy * t1_y;
+          double proj2 = rel_vx * t2_x + rel_vy * t2_y;
+          proj1 = std::max(0.0, proj1);
+          proj2 = std::max(0.0, proj2);
+
+          double cand1_x = proj1 * t1_x;
+          double cand1_y = proj1 * t1_y;
+          double cand2_x = proj2 * t2_x;
+          double cand2_y = proj2 * t2_y;
+
+          double d1_sq = (rel_vx - cand1_x) * (rel_vx - cand1_x) + (rel_vy - cand1_y) * (rel_vy - cand1_y);
+          double d2_sq = (rel_vx - cand2_x) * (rel_vx - cand2_x) + (rel_vy - cand2_y) * (rel_vy - cand2_y);
+
+          double safe_rel_vx, safe_rel_vy;
+          if (d1_sq < d2_sq) {
+            safe_rel_vx = cand1_x;
+            safe_rel_vy = cand1_y;
+          } else {
+            safe_rel_vx = cand2_x;
+            safe_rel_vy = cand2_y;
+          }
+
+          // New safe velocity in world frame
+          safe_vx_world = neighbor_vx_world + safe_rel_vx;
+          safe_vy_world = neighbor_vy_world + safe_rel_vy;
+        }
+
+        RCLCPP_WARN(
+          this->get_logger(),
+          "Avoiding collision with %s (dist: %.2fm)",
+          neighbor.robot_id.c_str(), dist);
       }
     }
 
-    // Clamp to velocity limits (from parameters)
-    double linear_mag = std::sqrt(
-      safe_vel.linear.x * safe_vel.linear.x +
-      safe_vel.linear.y * safe_vel.linear.y);
+    if (avoided_any) {
+      // Convert safe velocity back to robot body frame
+      // vx_body = vx_world * cos(yaw) + vy_world * sin(yaw)
+      // vy_body = -vx_world * sin(yaw) + vy_world * cos(yaw)
+      safe_vel.linear.x = safe_vx_world * std::cos(robot_yaw) + safe_vy_world * std::sin(robot_yaw);
+      safe_vel.linear.y = 0.0; // Diff-drive constraint
+
+      // Set angular velocity to steer towards the safe velocity direction in world frame
+      double safe_speed = std::sqrt(safe_vx_world * safe_vx_world + safe_vy_world * safe_vy_world);
+      if (safe_speed > 0.05) {
+        double desired_heading = std::atan2(safe_vy_world, safe_vx_world);
+        double heading_error = desired_heading - robot_yaw;
+        while (heading_error > M_PI) heading_error -= 2.0 * M_PI;
+        while (heading_error < -M_PI) heading_error += 2.0 * M_PI;
+
+        // Proportional control for steering to avoid collision
+        safe_vel.angular.z = 2.5 * heading_error;
+      }
+    } else {
+      // No avoidance needed, use desired velocity directly (desired_vel.linear.y is 0)
+      safe_vel = desired_vel;
+    }
+
+    // Clamp to velocity limits
+    double linear_mag = std::abs(safe_vel.linear.x);
     if (linear_mag > max_linear_vel_) {
-      double scale = max_linear_vel_ / linear_mag;
-      safe_vel.linear.x *= scale;
-      safe_vel.linear.y *= scale;
+      safe_vel.linear.x = std::copysign(max_linear_vel_, safe_vel.linear.x);
     }
 
     if (std::abs(safe_vel.angular.z) > max_angular_vel_) {

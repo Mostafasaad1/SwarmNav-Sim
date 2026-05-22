@@ -199,11 +199,11 @@ private:
           {
             int m_idx = my * merged_map->info.width + mx;
 
-            // Cell-wise max occupancy
+            // Cell-wise average occupancy to handle dynamic obstacles and sensor noise
             if (merged_map->data[m_idx] == -1) {
               merged_map->data[m_idx] = neighbor_value;
             } else {
-              merged_map->data[m_idx] = std::max(merged_map->data[m_idx], neighbor_value);
+              merged_map->data[m_idx] = static_cast<int8_t>((merged_map->data[m_idx] + neighbor_value) / 2);
             }
             merge_count++;
           }

@@ -73,7 +73,7 @@ public:
       [this](swarm_nav_msgs::msg::FrontierArray::SharedPtr msg) {this->frontierCallback(msg);});
 
     auction_announce_sub_ = this->create_subscription<swarm_nav_msgs::msg::AuctionAnnounce>(
-      "/swarm/auction/announce", 10,
+      "/swarm/auction/announce", rclcpp::QoS(1).best_effort(),
       [this](swarm_nav_msgs::msg::AuctionAnnounce::SharedPtr msg) {
         this->auctionAnnounceCallback(msg);
       });
@@ -145,13 +145,25 @@ private:
       return;
     }
 
+    // Check if our currently assigned frontier is still active in the announced frontiers
+    bool assigned_still_active = false;
+    for (const auto & frontier : msg->frontiers) {
+      if (frontier.frontier_id == current_assigned_frontier_) {
+        assigned_still_active = true;
+        break;
+      }
+    }
+    if (!assigned_still_active) {
+      current_assigned_frontier_ = "";
+    }
+
     RCLCPP_INFO(
       this->get_logger(), "Received auction from %s with %zu frontiers",
       msg->auctioneer_id.c_str(), msg->frontiers.size());
 
     // Calculate bids for each frontier
     for (const auto & frontier : msg->frontiers) {
-      float cost = calculateBidCost(frontier.centroid);
+      float cost = calculateBidCost(frontier.centroid, frontier.frontier_id);
 
       swarm_nav_msgs::msg::AuctionBid bid_msg;
       bid_msg.auction_id = msg->auction_id;
@@ -260,6 +272,32 @@ private:
 
     // Clear previous bids
     received_bids_.clear();
+
+    // Check if our currently assigned frontier is still active in our current frontiers
+    bool assigned_still_active = false;
+    for (const auto & frontier : current_frontiers_) {
+      if (frontier.frontier_id == current_assigned_frontier_) {
+        assigned_still_active = true;
+        break;
+      }
+    }
+    if (!assigned_still_active) {
+      current_assigned_frontier_ = "";
+    }
+
+    // Submit self-bids immediately
+    for (const auto & frontier : current_frontiers_) {
+      float cost = calculateBidCost(frontier.centroid, frontier.frontier_id);
+      Bid self_bid;
+      self_bid.robot_id = robot_id_;
+      self_bid.frontier_id = frontier.frontier_id;
+      self_bid.cost = cost;
+      received_bids_.push_back(self_bid);
+
+      RCLCPP_INFO(
+        this->get_logger(), "Self-bid %.2f for frontier %s",
+        cost, frontier.frontier_id.c_str());
+    }
   }
 
   void resolveAuction()
@@ -277,38 +315,46 @@ private:
       if (bids.empty()) {continue;}
 
       // Find lowest cost bid (winner) with tie-breaking by robot_id
-      auto winner_it = std::min_element(
-        bids.begin(), bids.end(),
-        [](const Bid & a, const Bid & b) {
-          // Primary sort: lower cost wins
-          if (a.cost != b.cost) {
-            return a.cost < b.cost;
+      const Bid* winner = nullptr;
+      for (const auto & bid : bids) {
+        if (!winner) {
+          winner = &bid;
+        } else {
+          if (bid.cost < winner->cost) {
+            winner = &bid;
+          } else if (bid.cost == winner->cost && bid.robot_id < winner->robot_id) {
+            winner = &bid;
           }
-          // Tie-breaking: lexicographically lower robot_id wins
-          return a.robot_id < b.robot_id;
-        });
+        }
+      }
 
       // Find second-lowest cost (price to pay)
-      float second_price = winner_it->cost;
-      if (bids.size() > 1) {
-        auto second_it = std::min_element(
-          bids.begin(), bids.end(),
-          [&winner_it](const Bid & a, const Bid & b) {
-            if (&a == &(*winner_it)) {return false;}
-            if (&b == &(*winner_it)) {return true;}
-            return a.cost < b.cost;
-          });
-        second_price = second_it->cost;
+      float second_price = winner->cost;
+      const Bid* second_winner = nullptr;
+      for (const auto & bid : bids) {
+        if (&bid == winner) {continue;}
+        if (!second_winner) {
+          second_winner = &bid;
+        } else {
+          if (bid.cost < second_winner->cost) {
+            second_winner = &bid;
+          } else if (bid.cost == second_winner->cost && bid.robot_id < second_winner->robot_id) {
+            second_winner = &bid;
+          }
+        }
+      }
+      if (second_winner) {
+        second_price = second_winner->cost;
       }
 
       RCLCPP_INFO(
         this->get_logger(),
         "Frontier %s awarded to %s (bid: %.2f, pays: %.2f)",
-        frontier_id.c_str(), winner_it->robot_id.c_str(),
-        winner_it->cost, second_price);
+        frontier_id.c_str(), winner->robot_id.c_str(),
+        winner->cost, second_price);
 
       // Publish AuctionResult message
-      publishResult(frontier_id, winner_it->robot_id, second_price);
+      publishResult(frontier_id, winner->robot_id, second_price);
     }
   }
 
@@ -330,7 +376,7 @@ private:
       frontier_id.c_str(), winner_id.c_str(), winning_bid);
   }
 
-  float calculateBidCost(const geometry_msgs::msg::Point & frontier_centroid)
+  float calculateBidCost(const geometry_msgs::msg::Point & frontier_centroid, const std::string & frontier_id)
   {
     // NOTE: Caller already holds mutex_, do not lock again
     // Spec formula: cost = distance*1.0 + travel_time*0.5 + obstacle_density*2.0 + task_switch*0.3
@@ -361,10 +407,10 @@ private:
       obstacle_density = std::min(1.0f, nearby_count / 5.0f);
     }
 
-    // 4. Task switch penalty: 1.0 if already assigned a different frontier
+    // 4. Task switch penalty: 1.0 if already assigned a different active frontier
     float task_switch_penalty = 0.0f;
     if (!current_assigned_frontier_.empty() &&
-      current_assigned_frontier_ != "")
+        current_assigned_frontier_ != frontier_id)
     {
       task_switch_penalty = 1.0f;
     }

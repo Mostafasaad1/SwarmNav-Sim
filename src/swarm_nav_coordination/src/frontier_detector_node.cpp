@@ -197,8 +197,36 @@ private:
       sum_y += y;
     }
 
-    frontier.centroid.x = origin.x + (sum_x / cells.size()) * resolution;
-    frontier.centroid.y = origin.y + (sum_y / cells.size()) * resolution;
+    // Calculate direction towards explored (free) space
+    double dx_sum = 0.0;
+    double dy_sum = 0.0;
+    for (auto [x, y] : cells) {
+      for (int dy_offset = -1; dy_offset <= 1; ++dy_offset) {
+        for (int dx_offset = -1; dx_offset <= 1; ++dx_offset) {
+          if (dx_offset == 0 && dy_offset == 0) {continue;}
+          int nx = x + dx_offset;
+          int ny = y + dy_offset;
+          if (nx >= 0 && nx < width && ny >= 0 && ny < (int)map->info.height) {
+            int nidx = ny * width + nx;
+            if (map->data[nidx] == 0) { // Free/explored cell
+              dx_sum += dx_offset;
+              dy_sum += dy_offset;
+            }
+          }
+        }
+      }
+    }
+
+    double len = std::sqrt(dx_sum * dx_sum + dy_sum * dy_sum);
+    double ux = 0.0;
+    double uy = 0.0;
+    if (len > 1e-5) {
+      ux = dx_sum / len;
+      uy = dy_sum / len;
+    }
+
+    frontier.centroid.x = origin.x + (sum_x / cells.size()) * resolution + ux * frontier_travel_distance_;
+    frontier.centroid.y = origin.y + (sum_y / cells.size()) * resolution + uy * frontier_travel_distance_;
     frontier.centroid.z = 0.0;
     frontier.size = cells.size();
 
