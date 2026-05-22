@@ -63,16 +63,21 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
         SetRemap('tf', '/tf'),
         SetRemap('tf_static', '/tf_static'),
 
-        # Static transform: map -> robot_N/odom (placeholder until SLAM provides it)
+        # Static transform: map -> robot_N/odom
+        # Must match the Gazebo spawn position so the costmap origin is correct.
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
             name='static_map_odom',
             arguments=[
-                str(x_pos), str(y_pos), '0',  # x y z
-                str(yaw), '0', '0',           # yaw pitch roll
-                'map',
-                f'{robot_namespace}/odom'
+                '--x', str(x_pos),
+                '--y', str(y_pos),
+                '--z', '0',
+                '--yaw', str(yaw),
+                '--pitch', '0',
+                '--roll', '0',
+                '--frame-id', 'map',
+                '--child-frame-id', f'{robot_namespace}/odom'
             ],
             parameters=[{'use_sim_time': True}],
         ),
@@ -137,6 +142,8 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
         ),
 
         # Nav2 Controller Server
+        # Remaps cmd_vel -> cmd_vel_nav2 so the ORCA velocity filter receives it.
+        # Pipeline: Nav2 -> cmd_vel_nav2 -> ORCA filter -> cmd_vel -> Gazebo
         LifecycleNode(
             package='nav2_controller',
             executable='controller_server',
@@ -144,6 +151,9 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             namespace='',
             output='screen',
             parameters=[configured_params],
+            remappings=[
+                ('cmd_vel', 'cmd_vel_nav2'),
+            ],
         ),
 
         # Nav2 Planner Server
@@ -205,16 +215,16 @@ def launch_robots(context, *args, **kwargs):
 
     # Robot positions in warehouse (40m x 60m)
     robot_positions = [
-        (0, -15.0, 0.0, 0.0),      # robot_0
-        (-10.0, -15.0, 0.0, 0.0),  # robot_1
-        (10.0, -15.0, 0.0, 0.0),   # robot_2
-        (-5.0, -20.0, 0.0, 0.0),   # robot_3
-        (5.0, -20.0, 0.0, 0.0),    # robot_4
+        (-15.0, -20.0, 0.0),   # robot_0: x, y, yaw
+        (-10.0, -20.0, 0.0),   # robot_1
+        (-5.0,  -20.0, 0.0),   # robot_2
+        (0.0,   -20.0, 0.0),   # robot_3
+        (5.0,   -20.0, 0.0),   # robot_4
     ]
 
     actions = []
     for i in range(num_robots):
-        robot_id, x, y, yaw = robot_positions[i]
+        x, y, yaw = robot_positions[i]
         actions.append(generate_robot_launch(i, x, y, yaw))
 
     return actions

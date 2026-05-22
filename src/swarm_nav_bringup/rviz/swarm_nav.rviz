@@ -7,11 +7,10 @@ Panels:
         - /Global Options1
         - /Status1
         - /Map Robot_01
-        - /Map Robot_01/Status1
         - /Pose1
         - /Pose1/Topic1
       Splitter Ratio: 0.5
-    Tree Height: 280
+    Tree Height: 416
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Views
@@ -509,7 +508,7 @@ Visualization Manager:
       Axes Radius: 0.10000000149011612
       Class: rviz_default_plugins/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612
       Name: Pose
@@ -523,7 +522,27 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /robot_0/goal_pose
-      Value: true
+      Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz_default_plugins/Pose
+      Color: 255; 25; 0
+      Enabled: false
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_0/goal_pose
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 30; 30; 30
@@ -568,39 +587,52 @@ Visualization Manager:
         Value: /robot_2/goal_pose
     - Class: rviz_default_plugins/Measure
       Line color: 128; 128; 0
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /clicked_point
   Transformation:
     Current:
       Class: rviz_default_plugins/TF
   Value: true
   Views:
     Current:
-      Angle: 0.13999980688095093
-      Class: rviz_default_plugins/TopDownOrtho
+      Class: rviz_default_plugins/Orbit
+      Distance: 55.10440444946289
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: false
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 30
+      Pitch: 0.6753982305526733
       Target Frame: map
-      Value: TopDownOrtho (rviz)
-      X: 0
-      Y: 0
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 1.0053980350494385
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1000
+  Height: 1014
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000019d0000038cfc0200000003fb000000100044006900730070006c006100790073010000003e000001a4000000ca00fffffffb0000001200530065006c0065006300740069006f006e01000001e8000000cb0000005c00fffffffb0000000a0056006900650077007301000002b900000111000000a600ffffff0000049d0000038c00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000001000000000000019d0000039afc0200000003fb000000100044006900730070006c006100790073010000003e0000022c000000ca00fffffffb0000001200530065006c0065006300740069006f006e00000001ef000000ce0000005c00fffffffb0000000a00560069006500770073010000027000000168000000a600ffffff0000059b0000039a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1600
+  Width: 1854
   X: 66
   Y: 29
