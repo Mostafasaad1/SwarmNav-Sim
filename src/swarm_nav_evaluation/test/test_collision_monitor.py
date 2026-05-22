@@ -5,8 +5,9 @@ Unit tests for collision monitor.
 This module tests collision detection logic.
 """
 
-import pytest
 import math
+
+import pytest
 from geometry_msgs.msg import Pose
 
 
@@ -34,8 +35,8 @@ def test_collision_detection_below_threshold():
     collision_detected = distance < threshold
 
     assert collision_detected, (
-        f"Expected collision (distance={distance:.2f} < "
-        f"threshold={threshold})"
+        f'Expected collision (distance={distance:.2f} < '
+        f'threshold={threshold})'
     )
     assert distance == pytest.approx(0.3, abs=0.01)
 
@@ -56,8 +57,8 @@ def test_collision_detection_above_threshold():
     collision_detected = distance < threshold
 
     assert not collision_detected, (
-        f"Expected no collision (distance={distance:.2f} >= "
-        f"threshold={threshold})"
+        f'Expected no collision (distance={distance:.2f} >= '
+        f'threshold={threshold})'
     )
     assert distance == pytest.approx(1.0, abs=0.01)
 
@@ -79,8 +80,8 @@ def test_collision_detection_exact_threshold():
 
     # At exact threshold, should NOT be collision (< not <=)
     assert not collision_detected, (
-        f"Expected no collision at exact threshold "
-        f"(distance={distance:.2f})"
+        f'Expected no collision at exact threshold '
+        f'(distance={distance:.2f})'
     )
 
 
@@ -101,7 +102,7 @@ def test_collision_detection_diagonal():
 
     # Distance should be 0.5 (3-4-5 triangle)
     assert distance == pytest.approx(0.5, abs=0.01)
-    assert not collision_detected, "Expected no collision at exact threshold"
+    assert not collision_detected, 'Expected no collision at exact threshold'
 
 
 def test_collision_detection_same_position():
@@ -119,7 +120,7 @@ def test_collision_detection_same_position():
 
     collision_detected = distance < threshold
 
-    assert collision_detected, "Expected collision when robots at same position"
+    assert collision_detected, 'Expected collision when robots at same position'
     assert distance == pytest.approx(0.0, abs=0.01)
 
 
@@ -139,8 +140,8 @@ def test_collision_detection_far_apart():
     collision_detected = distance < threshold
 
     assert not collision_detected, (
-        f"Expected no collision (distance={distance:.2f} >> "
-        f"threshold={threshold})"
+        f'Expected no collision (distance={distance:.2f} >> '
+        f'threshold={threshold})'
     )
     assert distance > 10.0
 

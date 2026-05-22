@@ -6,6 +6,8 @@ This module tests coverage calculation logic.
 """
 
 import pytest
+import json
+import numpy as np
 from nav_msgs.msg import OccupancyGrid
 
 
@@ -31,7 +33,7 @@ def test_coverage_calculation_synthetic_grid():
     coverage = (known_cells / total_cells) * 100.0
 
     # Verify 50% coverage
-    assert coverage == 50.0, f"Expected 50% coverage, got {coverage}%"
+    assert coverage == 50.0, f'Expected 50% coverage, got {coverage}%'
 
 
 def test_coverage_calculation_all_known():
@@ -45,7 +47,7 @@ def test_coverage_calculation_all_known():
     total_cells = len(grid.data)
     coverage = (known_cells / total_cells) * 100.0
 
-    assert coverage == 100.0, f"Expected 100% coverage, got {coverage}%"
+    assert coverage == 100.0, f'Expected 100% coverage, got {coverage}%'
 
 
 def test_coverage_calculation_all_unknown():
@@ -59,7 +61,7 @@ def test_coverage_calculation_all_unknown():
     total_cells = len(grid.data)
     coverage = (known_cells / total_cells) * 100.0
 
-    assert coverage == 0.0, f"Expected 0% coverage, got {coverage}%"
+    assert coverage == 0.0, f'Expected 0% coverage, got {coverage}%'
 
 
 def test_coverage_calculation_mixed():
@@ -77,7 +79,7 @@ def test_coverage_calculation_mixed():
     total_cells = len(grid.data)
     coverage = (known_cells / total_cells) * 100.0
 
-    assert coverage == 75.0, f"Expected 75% coverage, got {coverage}%"
+    assert coverage == 75.0, f'Expected 75% coverage, got {coverage}%'
 
 
 def test_coverage_empty_grid():
@@ -94,7 +96,7 @@ def test_coverage_empty_grid():
         total_cells = len(grid.data)
         coverage = (known_cells / total_cells) * 100.0
 
-    assert coverage == 0.0, f"Expected 0% coverage for empty grid, got {coverage}%"
+    assert coverage == 0.0, f'Expected 0% coverage for empty grid, got {coverage}%'
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
-from setuptools import find_packages, setup
-import os
 from glob import glob
+import os
+
+from setuptools import find_packages, setup
 
 package_name = 'swarm_nav_evaluation'
 
@@ -13,8 +14,9 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'psutil', 'pandas', 'optuna'],
     zip_safe=True,
     maintainer='mox',
     maintainer_email='mostafa.saad.1tb@gmail.com',
@@ -31,6 +33,9 @@ setup(
             'collision_monitor.py = swarm_nav_evaluation.collision_monitor:main',
             'slam_metrics.py = swarm_nav_evaluation.slam_metrics:main',
             'timer_shutdown.py = swarm_nav_evaluation.timer_shutdown:main',
+            'benchmark_runner.py = swarm_nav_evaluation.benchmark_runner:main',
+            'bayesian_tuner.py = swarm_nav_evaluation.bayesian_tuner:main',
+            'system_metrics.py = swarm_nav_evaluation.system_metrics:main',
         ],
     },
 )

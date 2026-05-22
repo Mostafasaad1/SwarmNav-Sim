@@ -132,11 +132,11 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             parameters=[{
                 'use_sim_time': True,
                 'robot_id': robot_namespace,
-                'robot_radius': 0.25,
+                'robot_radius': LaunchConfiguration('robot_radius'),
                 'max_neighbors': 10,
-                'time_horizon': 2.0,
-                'max_linear_velocity': 0.5,
-                'max_angular_velocity': 1.0
+                'time_horizon': LaunchConfiguration('time_horizon'),
+                'max_linear_velocity': LaunchConfiguration('max_linear_velocity'),
+                'max_angular_velocity': LaunchConfiguration('max_angular_velocity')
             }],
             output='screen'
         ),
@@ -251,6 +251,36 @@ def generate_launch_description():
         description='Launch RViz for visualization'
     )
 
+    gui_arg = DeclareLaunchArgument(
+        'gui',
+        default_value='true',
+        description='Launch Gazebo GUI'
+    )
+
+    max_linear_velocity_arg = DeclareLaunchArgument(
+        'max_linear_velocity',
+        default_value='0.5',
+        description='Maximum linear velocity'
+    )
+
+    max_angular_velocity_arg = DeclareLaunchArgument(
+        'max_angular_velocity',
+        default_value='1.0',
+        description='Maximum angular velocity'
+    )
+
+    robot_radius_arg = DeclareLaunchArgument(
+        'robot_radius',
+        default_value='0.25',
+        description='Robot radius'
+    )
+
+    time_horizon_arg = DeclareLaunchArgument(
+        'time_horizon',
+        default_value='2.0',
+        description='ORCA time horizon'
+    )
+
     simulator_arg = DeclareLaunchArgument(
         'simulator',
         default_value='gazebo',
@@ -276,17 +306,47 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals('simulator', 'gazebo')
     )
 
+    coppeliasim_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare('swarm_nav_bringup'),
+                'launch',
+                'coppeliasim.launch.py'
+            ])
+        ]),
+        launch_arguments={
+            'num_robots': LaunchConfiguration('num_robots'),
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+        }.items(),
+        condition=LaunchConfigurationEquals('simulator', 'coppeliasim')
+    )
+
+    def validate_simulator(context, *args, **kwargs):
+        sim = LaunchConfiguration('simulator').perform(context)
+        valid_sims = ['gazebo', 'coppeliasim', 'none']
+        if sim not in valid_sims:
+            raise RuntimeError(f"Invalid simulator '{sim}'. Valid options are: {', '.join(valid_sims)}")
+        return []
+
     # Create launch description
     ld = LaunchDescription()
+
+    ld.add_action(OpaqueFunction(function=validate_simulator))
 
     # Add launch arguments
     ld.add_action(num_robots_arg)
     ld.add_action(use_sim_time_arg)
     ld.add_action(use_rviz_arg)
+    ld.add_action(gui_arg)
     ld.add_action(simulator_arg)
+    ld.add_action(max_linear_velocity_arg)
+    ld.add_action(max_angular_velocity_arg)
+    ld.add_action(robot_radius_arg)
+    ld.add_action(time_horizon_arg)
 
     # Add simulator launch
     ld.add_action(gazebo_launch)
+    ld.add_action(coppeliasim_launch)
 
     # Spawn robots dynamically based on num_robots parameter
     ld.add_action(OpaqueFunction(function=launch_robots))

@@ -5,11 +5,12 @@ Monitors for collisions between robots and obstacles.
 Tracks robot positions and detects collision events.
 """
 
-import rclpy
-from rclpy.node import Node
-from nav_msgs.msg import Odometry
-import numpy as np
 import json
+
+import numpy as np
+import rclpy
+from nav_msgs.msg import Odometry
+from rclpy.node import Node
 
 
 class CollisionMonitor(Node):

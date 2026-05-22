@@ -5,11 +5,12 @@ Evaluates SLAM performance metrics.
 Calculates Absolute Trajectory Error (ATE) for SLAM evaluation.
 """
 
-import rclpy
-from rclpy.node import Node
-from nav_msgs.msg import Odometry
-import numpy as np
 import json
+
+import numpy as np
+import rclpy
+from nav_msgs.msg import Odometry
+from rclpy.node import Node
 
 
 class SlamMetrics(Node):

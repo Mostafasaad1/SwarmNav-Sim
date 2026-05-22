@@ -1,0 +1,67 @@
+# Benchmark Scenarios for SwarmNav-Sim
+# Defines a set of predefined scenarios for automated benchmarking.
+
+scenarios:
+- id: "baseline_3robots"
+  name: "Baseline - 3 Robots"
+  num_robots: 3
+  map: "warehouse_gz.sdf"
+  timeout_sec: 300
+  parameters:
+    max_linear_velocity: 0.5
+    max_angular_velocity: 1.0
+    robot_radius: 0.25
+    time_horizon: 2.0
+
+- id: "baseline_5robots"
+  name: "Baseline - 5 Robots"
+  num_robots: 5
+  map: "warehouse_gz.sdf"
+  timeout_sec: 300
+  parameters:
+    max_linear_velocity: 0.5
+    max_angular_velocity: 1.0
+    robot_radius: 0.25
+    time_horizon: 2.0
+
+- id: "fast_exploration"
+  name: "Fast Exploration"
+  num_robots: 3
+  map: "warehouse_gz.sdf"
+  timeout_sec: 180
+  parameters:
+    max_linear_velocity: 1.0
+    max_angular_velocity: 2.0
+    robot_radius: 0.25
+    time_horizon: 1.5
+
+- id: "dense_swarm"
+  name: "Dense Swarm"
+  num_robots: 5
+  map: "warehouse_gz.sdf"
+  timeout_sec: 300
+  parameters:
+    max_linear_velocity: 0.3
+    max_angular_velocity: 0.6
+    robot_radius: 0.2
+    time_horizon: 1.0
+
+- id: "sparse_swarm"
+  name: "Sparse Swarm"
+  num_robots: 2
+  map: "warehouse_gz.sdf"
+  timeout_sec: 300
+  parameters:
+    max_linear_velocity: 0.8
+    max_angular_velocity: 1.5
+    robot_radius: 0.3
+    time_horizon: 3.0
+
+# Parameter sweep configurations for sensitivity analysis
+sweep:
+  - parameter: max_linear_velocity
+    values: [0.3, 0.5, 0.8, 1.0, 1.2]
+    base_scenario: baseline_3robots
+  - parameter: num_robots
+    values: [2, 3, 4, 5]
+    base_scenario: baseline_3robots

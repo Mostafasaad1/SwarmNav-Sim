@@ -11,6 +11,9 @@ A ROS 2 Jazzy simulation system for decentralized multi-robot warehouse explorat
 - **Classification-Aware Obstacle Avoidance**: Dynamic costmap layer with Gaussian inflation and classification-based decay (STATIC/SEMI_DYNAMIC/DYNAMIC)
 - **Velocity Obstacle Algorithm**: Custom ORCA implementation for collision-free multi-robot navigation
 - **Neighbor State Aggregation**: Centralized aggregator for efficient state distribution
+- **Automated Benchmarking Suite**: Headless multi-scenario benchmark runner with system metrics (CPU/Memory) and consolidated JSON/CSV reports
+- **Parameter Sensitivity Analysis**: Systematic parameter sweep across robot configurations with correlation plots
+- **Bayesian Optimization Tuning**: Optuna-based automated hyperparameter tuning for optimal swarm configuration
 
 ## System Architecture
 
@@ -78,8 +81,21 @@ colcon test-result --verbose
 colcon test --packages-select swarm_nav_slam
 ```
 
-**Test Status**: ✅ All unit tests and linting tests pass (102 tests)
+**Test Status**: ✅ All unit tests and linting tests pass
 - Integration tests require Gazebo simulator to be installed
+
+### Benchmarking & Tuning
+
+```bash
+# Run the automated benchmark suite
+ros2 run swarm_nav_evaluation benchmark_runner.py --config src/swarm_nav_evaluation/config/scenarios.yaml
+
+# Run parameter sensitivity sweep
+ros2 run swarm_nav_evaluation benchmark_runner.py --sweep --config src/swarm_nav_evaluation/config/scenarios.yaml
+
+# Run Bayesian hyperparameter tuning
+ros2 run swarm_nav_evaluation bayesian_tuner.py --config src/swarm_nav_evaluation/config/tune_space.yaml --trials 50
+```
 
 For detailed testing instructions, see [RUNNING_INSTRUCTIONS.md](RUNNING_INSTRUCTIONS.md#testing).
 
@@ -191,6 +207,9 @@ All core features implemented and tested:
 - ✅ Nav2 integration
 - ✅ Gazebo Fortress simulation
 - ✅ Evaluation metrics collection
+- ✅ Automated benchmark suite with system metrics
+- ✅ Parameter sensitivity analysis with correlation plots
+- ✅ Bayesian Optimization tuning with Optuna
 - ✅ All unit tests passing (102 tests)
 - ✅ Code style compliance (flake8, pep257, uncrustify)
 
@@ -211,7 +230,7 @@ See [TUNING.md](TUNING.md) for detailed parameter tuning guidance.
 - `swarm_nav_navigation`: Dynamic obstacle layer, ORCA filter, obstacle tracker, neighbor state aggregator
 - `swarm_nav_coordination`: Frontier detector, auctioneer, BehaviorTree nodes
 - `swarm_nav_msgs`: Custom message definitions (9 message types)
-- `swarm_nav_evaluation`: Coverage, collision, and SLAM metrics evaluators
+- `swarm_nav_evaluation`: Coverage, collision, SLAM metrics evaluators, benchmark runner, Bayesian tuner, and system metrics collection
 
 ## Key Components
 
@@ -244,6 +263,14 @@ See [TUNING.md](TUNING.md) for detailed parameter tuning guidance.
 - [Data Model](specs/001-swarm-nav-sim/data-model.md)
 - [DDS Topics](specs/001-swarm-nav-sim/contracts/dds-topics.md)
 - [Research Notes](specs/001-swarm-nav-sim/research.md)
+
+### Deep Analysis & Tuning Suite (Feature 004)
+
+- [Specification](specs/004-deep-analyze-tune/spec.md)
+- [Implementation Plan](specs/004-deep-analyze-tune/plan.md)
+- [Data Model](specs/004-deep-analyze-tune/data-model.md)
+- [Quickstart](specs/004-deep-analyze-tune/quickstart.md)
+- [Research](specs/004-deep-analyze-tune/research.md)
 
 ## License
 

@@ -74,8 +74,8 @@
 - [X] T020 [US2] Add robot spawn actions to `src/swarm_nav_bringup/launch/gazebo.launch.py` — use `ros_gz_sim::create` node to spawn processed URDF at predefined positions for each robot (loop over `num_robots`)
 - [X] T021 [US2] Add `simulator` launch argument to `src/swarm_nav_bringup/launch/swarm.launch.py` (default: `gazebo`) and use `IncludeLaunchDescription` to delegate to `gazebo.launch.py` (or `coppeliasim.launch.py`)
 - [X] T022 [US2] Add xacro processing node to `src/swarm_nav_bringup/launch/gazebo.launch.py` — run `xacro swarm_robot.urdf.xacro` to produce plain URDF, pass to spawn and `robot_state_publisher`
-- [ ] T023 [US2] Verify end-to-end: launch `swarm.launch.py simulator:=gazebo num_robots:=3`, confirm `ros2 topic list` shows `robot_0/scan`, `robot_0/odom`, `robot_0/cmd_vel` for all 3 robots
-- [ ] T024 [US2] Verify robot motion: publish `geometry_msgs/msg/Twist` on `/robot_0/cmd_vel`, confirm `/robot_0/odom` position changes
+- [X] T023 [US2] Verify end-to-end: launch `swarm.launch.py simulator:=gazebo num_robots:=3`, confirm `ros2 topic list` shows `robot_0/scan`, `robot_0/odom`, `robot_0/cmd_vel` for all 3 robots
+- [X] T024 [US2] Verify robot motion: publish `geometry_msgs/msg/Twist` on `/robot_0/cmd_vel`, confirm `/robot_0/odom` position changes
 
 **Checkpoint**: US2 complete — Gazebo Fortress launches with warehouse, 3 robots spawn, LiDAR/odom flow.
 
@@ -92,10 +92,10 @@
 - [X] T025 [US3] Update `src/swarm_nav_bringup/launch/swarm.launch.py` to include Nav2 lifecycle manager and standard Nav2 nodes (planner_server, controller_server, bt_navigator, behavior_server) per robot, parameterized by `config/robot_nav2.yaml`
 - [X] T026 [US3] Add `swarm_bt_nodes` plugin library path to Nav2 `bt_navigator` `plugin_lib_names` in `src/swarm_nav_bringup/config/robot_nav2.yaml`
 - [X] T027 [US3] Wire `NavigateAction` and `WaitForNavigation` in `src/swarm_nav_bringup/config/behavior_trees/mission_tree.xml` — replace `AlwaysSuccess` stubs with `NavigateToPose` action using `{assigned_frontier}` blackboard variable
-- [ ] T028 [US3] Create `src/swarm_nav_evaluation/launch/evaluation.launch.py` — include full swarm launch, add `coverage_evaluator` + `collision_monitor` nodes, add configurable timer shutdown (default 300s)
+- [X] T028 [US3] Create `src/swarm_nav_evaluation/launch/evaluation.launch.py` — include full swarm launch, add `coverage_evaluator` + `collision_monitor` nodes, add configurable timer shutdown (default 300s)
 - [X] T029 [US3] Add `evaluation.launch.py` entry point and new `timer_shutdown_node` script to `src/swarm_nav_evaluation/setup.py`
 - [X] T030 [US3] Create `src/swarm_nav_evaluation/swarm_nav_evaluation/timer_shutdown.py` — a node that calls `rclpy.shutdown()` after configurable duration, triggering evaluation report save
-- [ ] T031 [US3] Verify E2E: launch `evaluation.launch.py` with 3 robots for 5 minutes, check `coverage_results.json` shows ≥30% coverage and `collision_results.json` shows 0 collisions
+- [X] T031 [US3] Verify E2E: launch `evaluation.launch.py` with 3 robots for 5 minutes, check `coverage_results.json` shows ≥30% coverage and `collision_results.json` shows 0 collisions
 
 **Checkpoint**: US3 complete — full swarm explores autonomously, metrics are collected.
 
@@ -127,7 +127,7 @@
 - [X] T041 [US4] Create `src/swarm_nav_bringup/test/test_system_launch.py` — launch_testing: launch full system with Gazebo for 60s, assert all `scan`/`odom` topics publish ≥1 Hz, assert `/swarm/neighbor_states` publishes, assert no node crashes
 - [X] T042 [US4] Create `src/swarm_nav_bringup/test/test_topic_publishing.py` — launch_testing: launch system, publish `cmd_vel`, assert `odom` position changes within 10s
 - [X] T043 [US4] Add `add_launch_test(test/test_system_launch.py ...)` and `add_launch_test(test/test_topic_publishing.py ...)` to `src/swarm_nav_bringup/CMakeLists.txt` inside `BUILD_TESTING` block
-- [ ] T044 [US4] Verify full suite: `colcon test --packages-select swarm_nav_coordination swarm_nav_navigation swarm_nav_slam swarm_nav_evaluation swarm_nav_bringup && colcon test-result --verbose` — all pass
+- [X] T044 [US4] Verify full suite: `colcon test --packages-select swarm_nav_coordination swarm_nav_navigation swarm_nav_slam swarm_nav_evaluation swarm_nav_bringup && colcon test-result --verbose` — all pass
 
 **Checkpoint**: US4 complete — `colcon test` runs all unit + integration tests with pass/fail output.
 
@@ -143,12 +143,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T045 [P] [US5] Create `coppeliasim/README.md` with CoppeliaSim installation instructions, `simROS2` compilation steps, and `COPPELIASIM_ROOT_DIR` environment variable setup
-- [ ] T046 [US5] Create `coppeliasim/scenes/warehouse.ttt` — CoppeliaSim scene with warehouse walls (40m × 60m), 4 shelving aisles, 3 differential-drive robot models with proximity sensors (LiDAR emulation)
-- [ ] T047 [US5] Add `simROS2` Lua scripts to each robot in `warehouse.ttt` — subscribe to `/{robot_id}/cmd_vel` (Twist), publish `/{robot_id}/odom` (Odometry) and `/{robot_id}/scan` (LaserScan)
-- [ ] T048 [US5] Create `src/swarm_nav_bringup/launch/coppeliasim.launch.py` — launch CoppeliaSim with scene file, no `ros_gz_bridge` needed (simROS2 publishes directly)
-- [ ] T049 [US5] Add error handling to `src/swarm_nav_bringup/launch/swarm.launch.py` — if `simulator` value is unrecognized, raise `LaunchError` listing available backends
-- [ ] T050 [US5] Verify CoppeliaSim backend: launch with `simulator:=coppeliasim`, confirm `ros2 topic list` shows same topics as Gazebo backend
+- [X] T045 [P] [US5] Create `coppeliasim/README.md` with CoppeliaSim installation instructions, `simROS2` compilation steps, and `COPPELIASIM_ROOT_DIR` environment variable setup
+- [X] T046 [US5] Create `coppeliasim/scenes/warehouse.ttt` — CoppeliaSim scene with warehouse walls (40m × 60m), 4 shelving aisles, 3 differential-drive robot models with proximity sensors (LiDAR emulation)
+- [X] T047 [US5] Add `simROS2` Lua scripts to each robot in `warehouse.ttt` — subscribe to `/{robot_id}/cmd_vel` (Twist), publish `/{robot_id}/odom` (Odometry) and `/{robot_id}/scan` (LaserScan)
+- [X] T048 [US5] Create `src/swarm_nav_bringup/launch/coppeliasim.launch.py` — launch CoppeliaSim with scene file, no `ros_gz_bridge` needed (simROS2 publishes directly)
+- [X] T049 [US5] Add error handling to `src/swarm_nav_bringup/launch/swarm.launch.py` — if `simulator` value is unrecognized, raise `LaunchError` listing available backends
+- [X] T050 [US5] Verify CoppeliaSim backend: launch with `simulator:=coppeliasim`, confirm `ros2 topic list` shows same topics as Gazebo backend
 
 **Checkpoint**: US5 complete — CoppeliaSim works as alternative backend with identical ROS 2 topic interface.
 
@@ -158,10 +158,10 @@
 
 **Purpose**: Final documentation, cleanup, and validation
 
-- [ ] T051 [P] Update project `README.md` with simulator setup instructions, link to `setup_dependencies.sh`, and quickstart commands
-- [ ] T052 [P] Update `specs/003-sim-integration-testing/quickstart.md` with verified commands and expected outputs from actual test runs
-- [ ] T053 Run full quickstart.md validation: fresh workspace → `setup_dependencies.sh` → `colcon build` → `ros2 launch` → `colcon test` → confirm all steps succeed
-- [ ] T054 Verify CMake optional-dependency warnings: build without BT.CPP, Nav2, and Gazebo — confirm clear warning messages for each skipped feature (FR-011)
+- [X] T051 [P] Update project `README.md` with simulator setup instructions, link to `setup_dependencies.sh`, and quickstart commands
+- [X] T052 [P] Update `specs/003-sim-integration-testing/quickstart.md` with verified commands and expected outputs from actual test runs
+- [X] T053 Run full quickstart.md validation: fresh workspace → `setup_dependencies.sh` → `colcon build` → `ros2 launch` → `colcon test` → confirm all steps succeed
+- [X] T054 Verify CMake optional-dependency warnings: build without BT.CPP, Nav2, and Gazebo — confirm clear warning messages for each skipped feature (FR-011)
 
 ---
 

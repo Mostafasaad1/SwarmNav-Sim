@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """
 harmonic.launch.py
+
 Unified Gazebo Harmonic launch file for SwarmNav-Sim.
 Spawns multiple robots with full topic bridges (cmd_vel, scan, odom, clock).
 """
 
 import os
+
+import xacro
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-import xacro
 
 
 def spawn_robots(context, *args, **kwargs):
-    """OpaqueFunction to dynamically spawn robots and their bridges."""
+    """Dynamically spawn robots and their parameter bridges."""
     num_robots = int(LaunchConfiguration('num_robots').perform(context))
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context).lower() == 'true'
     
@@ -123,24 +129,31 @@ def generate_launch_description():
         'gui', default_value='true', description='Launch Gazebo GUI'
     )
     
-    # Gazebo Sim launch
-    gz_sim = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare('ros_gz_sim'),
-                'launch',
-                'gz_sim.launch.py'
-            ])
-        ]),
-        launch_arguments={
-            'gz_args': [
+    # Gazebo Sim launch — headless when gui:=false
+    # Pass '-s' (server-only) to skip the GUI client and save GPU/CPU resources
+    def make_gz_launch(context, *args, **kwargs):
+        """Build the gz sim launch with headless flag resolved at runtime."""
+        gui_enabled = LaunchConfiguration('gui').perform(context).lower() == 'true'
+        gz_flags = '-r' if gui_enabled else '-s -r'
+        return [IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
                 PathJoinSubstitution([
-                    pkg_swarm_nav_bringup, 'worlds', 'warehouse_gz.sdf'
-                ]),
-                ' -r'
-            ],
-        }.items()
-    )
+                    FindPackageShare('ros_gz_sim'),
+                    'launch',
+                    'gz_sim.launch.py'
+                ])
+            ]),
+            launch_arguments={
+                'gz_args': [
+                    PathJoinSubstitution([
+                        pkg_swarm_nav_bringup, 'worlds', 'warehouse_gz.sdf'
+                    ]),
+                    f' {gz_flags}',
+                ],
+            }.items(),
+        )]
+
+    gz_sim = OpaqueFunction(function=make_gz_launch)
     
     # Clock Bridge
     clock_bridge = Node(
@@ -157,5 +170,5 @@ def generate_launch_description():
         gui_arg,
         gz_sim,
         clock_bridge,
-        OpaqueFunction(function=spawn_robots)
+        OpaqueFunction(function=spawn_robots),
     ])
