@@ -16,9 +16,9 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
 )
-from launch.conditions import IfCondition, LaunchConfigurationEquals
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import Command, EqualsSubstitution, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace, LifecycleNode, SetRemap
 from launch_ros.substitutions import FindPackageShare
 
@@ -303,7 +303,7 @@ def generate_launch_description():
             'num_robots': LaunchConfiguration('num_robots'),
             'use_sim_time': LaunchConfiguration('use_sim_time'),
         }.items(),
-        condition=LaunchConfigurationEquals('simulator', 'gazebo')
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration('simulator'), 'gazebo'))
     )
 
     coppeliasim_launch = IncludeLaunchDescription(
@@ -318,7 +318,7 @@ def generate_launch_description():
             'num_robots': LaunchConfiguration('num_robots'),
             'use_sim_time': LaunchConfiguration('use_sim_time'),
         }.items(),
-        condition=LaunchConfigurationEquals('simulator', 'coppeliasim')
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration('simulator'), 'coppeliasim'))
     )
 
     def validate_simulator(context, *args, **kwargs):
@@ -331,8 +331,6 @@ def generate_launch_description():
     # Create launch description
     ld = LaunchDescription()
 
-    ld.add_action(OpaqueFunction(function=validate_simulator))
-
     # Add launch arguments
     ld.add_action(num_robots_arg)
     ld.add_action(use_sim_time_arg)
@@ -343,6 +341,8 @@ def generate_launch_description():
     ld.add_action(max_angular_velocity_arg)
     ld.add_action(robot_radius_arg)
     ld.add_action(time_horizon_arg)
+
+    ld.add_action(OpaqueFunction(function=validate_simulator))
 
     # Add simulator launch
     ld.add_action(gazebo_launch)
