@@ -27,6 +27,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
 #include "swarm_nav_msgs/msg/auction_result.hpp"
+#include "swarm_nav_msgs/msg/auction_announce.hpp"
 #include "swarm_nav_msgs/msg/frontier_array.hpp"
 
 namespace swarm_nav_coordination
@@ -52,6 +53,21 @@ public:
         for (const auto & f : msg->frontiers) {
           geometry_msgs::msg::PoseStamped pose;
           pose.header = msg->header;
+          pose.pose.position = f.centroid;
+          pose.pose.orientation.w = 1.0;
+          frontier_poses_[f.frontier_id] = pose;
+        }
+      });
+
+    // Cache frontier positions from other robots' auctions
+    announce_sub_ = node_->create_subscription<swarm_nav_msgs::msg::AuctionAnnounce>(
+      "/swarm/auction/announce",
+      rclcpp::QoS(10),
+      [this](swarm_nav_msgs::msg::AuctionAnnounce::SharedPtr msg) {
+        for (const auto & f : msg->frontiers) {
+          geometry_msgs::msg::PoseStamped pose;
+          pose.header.frame_id = msg->auctioneer_id + "/map";
+          pose.header.stamp = node_->now();
           pose.pose.position = f.centroid;
           pose.pose.orientation.w = 1.0;
           frontier_poses_[f.frontier_id] = pose;
@@ -134,6 +150,7 @@ private:
   std::string robot_id_;
 
   rclcpp::Subscription<swarm_nav_msgs::msg::FrontierArray>::SharedPtr frontier_sub_;
+  rclcpp::Subscription<swarm_nav_msgs::msg::AuctionAnnounce>::SharedPtr announce_sub_;
   rclcpp::Subscription<swarm_nav_msgs::msg::AuctionResult>::SharedPtr result_sub_;
 
   std::unordered_map<std::string, geometry_msgs::msg::PoseStamped> frontier_poses_;
@@ -144,7 +161,7 @@ private:
 
 }  // namespace swarm_nav_coordination
 
-BT_REGISTER_NODES(factory)
+void RegisterRunAuctionBT(BT::BehaviorTreeFactory& factory)
 {
   factory.registerNodeType<swarm_nav_coordination::RunAuctionBT>("RunAuctionBT");
 }

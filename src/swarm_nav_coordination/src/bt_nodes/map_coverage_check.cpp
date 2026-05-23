@@ -96,8 +96,7 @@ private:
 
 }  // namespace swarm_nav_coordination
 
-// Register the node with BehaviorTree.CPP
-BT_REGISTER_NODES(factory)
+void RegisterMapCoverageCheck(BT::BehaviorTreeFactory& factory)
 {
   factory.registerNodeType<swarm_nav_coordination::MapCoverageCheck>("MapCoverageCheck");
 }

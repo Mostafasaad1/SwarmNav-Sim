@@ -30,7 +30,6 @@
             <!-- Call Nav2 action to navigate to frontier -->
             <NavigateToPose goal="{assigned_frontier}" 
                            server_name="navigate_to_pose"
-                           server_timeout="10"
                            name="NavigateAction"/>
             
             <!-- If navigation fails, continue to next cycle -->

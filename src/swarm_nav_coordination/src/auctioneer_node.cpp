@@ -21,6 +21,8 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
+#include <tf2/utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <string>
 #include <vector>
 #include <map>
@@ -171,7 +173,7 @@ private:
 
     // Calculate bids for each frontier
     for (const auto & frontier : msg->frontiers) {
-      float cost = calculateBidCost(frontier.centroid, frontier.frontier_id);
+      float cost = calculateBidCost(frontier.centroid, frontier.frontier_id, msg->auctioneer_id);
 
       swarm_nav_msgs::msg::AuctionBid bid_msg;
       bid_msg.auction_id = msg->auction_id;
@@ -310,7 +312,7 @@ private:
 
     // Submit self-bids immediately
     for (const auto & frontier : current_frontiers_) {
-      float cost = calculateBidCost(frontier.centroid, frontier.frontier_id);
+      float cost = calculateBidCost(frontier.centroid, frontier.frontier_id, robot_id_);
       Bid self_bid;
       self_bid.robot_id = robot_id_;
       self_bid.frontier_id = frontier.frontier_id;
@@ -401,14 +403,33 @@ private:
 
   float calculateBidCost(
     const geometry_msgs::msg::Point & frontier_centroid,
-    const std::string & frontier_id)
+    const std::string & frontier_id,
+    const std::string & auctioneer_id)
   {
     // NOTE: Caller already holds mutex_, do not lock again
     // Spec formula: cost = distance*1.0 + travel_time*0.5 + obstacle_density*2.0 + task_switch*0.3
 
+    geometry_msgs::msg::Point global_centroid = frontier_centroid;
+    try {
+      auto transform = tf_buffer_->lookupTransform(
+        "map",
+        auctioneer_id + "/map",
+        tf2::TimePointZero
+      );
+      double yaw = tf2::getYaw(transform.transform.rotation);
+      double cx = frontier_centroid.x;
+      double cy = frontier_centroid.y;
+      global_centroid.x = cx * cos(yaw) - cy * sin(yaw) + transform.transform.translation.x;
+      global_centroid.y = cx * sin(yaw) + cy * cos(yaw) + transform.transform.translation.y;
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_DEBUG(this->get_logger(), "Could not transform frontier to map: %s", ex.what());
+      // High cost if we can't transform
+      return 1000.0f;
+    }
+
     // 1. Euclidean distance from current pose to frontier
-    double dx = frontier_centroid.x - current_pose_.position.x;
-    double dy = frontier_centroid.y - current_pose_.position.y;
+    double dx = global_centroid.x - current_pose_.position.x;
+    double dy = global_centroid.y - current_pose_.position.y;
     double distance = std::sqrt(dx * dx + dy * dy);
 
     // 2. Travel time at nominal speed

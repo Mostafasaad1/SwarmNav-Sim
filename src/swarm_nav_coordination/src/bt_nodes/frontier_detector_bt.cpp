@@ -81,7 +81,7 @@ private:
 
 }  // namespace swarm_nav_coordination
 
-BT_REGISTER_NODES(factory)
+void RegisterFrontierDetectorBT(BT::BehaviorTreeFactory& factory)
 {
   factory.registerNodeType<swarm_nav_coordination::FrontierDetectorBT>("FrontierDetectorBT");
 }

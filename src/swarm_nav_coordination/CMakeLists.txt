@@ -36,9 +36,10 @@ add_library(swarm_bt_nodes SHARED
   src/bt_nodes/map_coverage_check.cpp
   src/bt_nodes/frontier_detector_bt.cpp
   src/bt_nodes/run_auction_bt.cpp
+  src/bt_nodes/bt_plugin_registration.cpp
 )
 ament_target_dependencies(swarm_bt_nodes
-  rclcpp behaviortree_cpp swarm_nav_msgs nav_msgs
+  rclcpp behaviortree_cpp swarm_nav_msgs nav_msgs geometry_msgs
 )
 
 # Mission executor node (lifecycle-based)

@@ -77,7 +77,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                 '--pitch', '0',
                 '--roll', '0',
                 '--frame-id', 'map',
-                '--child-frame-id', f'{robot_namespace}/odom'
+                '--child-frame-id', f'{robot_namespace}/map'
             ],
             parameters=[{'use_sim_time': True}],
         ),
@@ -94,6 +94,30 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                 'shared_graph_topic': '/mrg_slam/shared_graph'
             }],
             output='screen'
+        ),
+
+        # Local SLAM node to build the occupancy grid for this robot
+        Node(
+            package='slam_toolbox',
+            executable='sync_slam_toolbox_node',
+            name='slam_toolbox',
+            output='screen',
+            parameters=[{
+                'use_sim_time': True,
+                'odom_frame': f'{robot_namespace}/odom',
+                'base_frame': f'{robot_namespace}/base_footprint',
+                'scan_topic': f'/{robot_namespace}/scan',
+                'map_frame': f'{robot_namespace}/map',
+                'mode': 'mapping',
+                'resolution': 0.05,
+                'max_laser_range': 20.0,
+                'map_update_interval': 1.0,
+                'transform_publish_period': 0.05
+            }],
+            remappings=[
+                ('/map', 'map'),
+                ('/map_metadata', 'map_metadata')
+            ]
         ),
 
         # Frontier detector node
@@ -129,7 +153,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='swarm_nav_coordination',
             executable='mission_executor_node',
             name='mission_executor',
-            namespace=robot_namespace,
+            namespace='',
             output='screen',
             parameters=[{
                 'use_sim_time': True,
@@ -164,7 +188,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_controller',
             executable='controller_server',
             name='controller_server',
-            namespace=robot_namespace,
+            namespace='',
             output='screen',
             parameters=[configured_params],
             remappings=[
@@ -177,7 +201,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_planner',
             executable='planner_server',
             name='planner_server',
-            namespace=robot_namespace,
+            namespace='',
             output='screen',
             parameters=[configured_params],
         ),
@@ -187,7 +211,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_behaviors',
             executable='behavior_server',
             name='behavior_server',
-            namespace=robot_namespace,
+            namespace='',
             output='screen',
             parameters=[configured_params],
         ),
@@ -197,7 +221,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             package='nav2_bt_navigator',
             executable='bt_navigator',
             name='bt_navigator',
-            namespace=robot_namespace,
+            namespace='',
             output='screen',
             parameters=[configured_params],
         ),
@@ -212,12 +236,14 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                 'use_sim_time': True,
                 'autostart': True,
                 'node_names': [
+                    'slam_toolbox',
                     'controller_server',
                     'planner_server',
                     'behavior_server',
                     'bt_navigator',
                     'mission_executor'
-                ]
+                ],
+                'bond_timeout': 0.0
             }]
         ),
     ])

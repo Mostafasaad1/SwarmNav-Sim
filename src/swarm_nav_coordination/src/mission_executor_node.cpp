@@ -27,6 +27,18 @@
 #include <rclcpp/rclcpp.hpp>
 #include <behaviortree_cpp/bt_factory.h>
 
+// Nav2 BT action nodes (NavigateToPose etc.) expect std::chrono::milliseconds
+// in the blackboard and as port defaults (e.g. "10"). BT.CPP has no built-in
+// converter for this type, so we register one here before tree creation.
+namespace BT
+{
+template<>
+inline std::chrono::milliseconds convertFromString(StringView key)
+{
+  return std::chrono::milliseconds(std::stoul(std::string(key.data(), key.size())));
+}
+}  // namespace BT
+
 namespace swarm_nav_coordination
 {
 
@@ -128,19 +140,32 @@ CallbackReturn MissionExecutorNode::on_configure(const rclcpp_lifecycle::State &
 
   // -------------------------------------------------------------------------
   // Load behavior tree from XML
+  // BT node constructors access blackboard keys ("node", "robot_id") during
+  // createTreeFromFile(), so we must pre-populate the blackboard first and
+  // pass it in — not set those keys after the fact.
   // -------------------------------------------------------------------------
+  auto blackboard = BT::Blackboard::create();
+  blackboard->set("node", bt_node_);
+  blackboard->set("robot_id", robot_id_);
+  // Nav2 BT action nodes (NavigateToPose, etc.) read these keys from the
+  // blackboard during tree construction — seed them with bt_navigator defaults.
+  blackboard->set<std::chrono::milliseconds>("bt_loop_duration",
+    std::chrono::milliseconds(10));
+  blackboard->set<std::chrono::milliseconds>("server_timeout",
+    std::chrono::milliseconds(20000));
+  // BtActionNode constructor also requires wait_for_service_timeout
+  blackboard->set<std::chrono::milliseconds>("wait_for_service_timeout",
+    std::chrono::milliseconds(1000));
+  // Pre-seed recovery counter used by Nav2 BT nodes during on_success()
+  blackboard->set<int>("number_recoveries", 0);
+
   try {
-    tree_ = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_xml_filename_));
+    tree_ = std::make_unique<BT::Tree>(factory_.createTreeFromFile(bt_xml_filename_, blackboard));
   } catch (const std::exception & e) {
     RCLCPP_ERROR(get_logger(), "Failed to create tree from %s: %s",
       bt_xml_filename_.c_str(), e.what());
     return CallbackReturn::FAILURE;
   }
-
-  // Populate blackboard entries expected by all BT plugins
-  auto blackboard = tree_->rootBlackboard();
-  blackboard->set("node", bt_node_);
-  blackboard->set("robot_id", robot_id_);
 
   // Start spinning bt_node_ so subscription + action callbacks fire
   start_bt_spin();
