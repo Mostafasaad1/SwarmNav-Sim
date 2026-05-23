@@ -5,7 +5,8 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -62,10 +63,9 @@ public:
     RCLCPP_INFO(this->get_logger(), "Auctioneer initialized for %s", robot_id_.c_str());
     RCLCPP_INFO(this->get_logger(), "Bid timeout: %d ms", bid_timeout_ms_);
 
-    // Subscribe to own odometry for position
-    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "odom", 10,
-      [this](nav_msgs::msg::Odometry::SharedPtr msg) {this->odomCallback(msg);});
+    // Initialize TF buffer and listener
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     // Subscribers
     frontier_sub_ = this->create_subscription<swarm_nav_msgs::msg::FrontierArray>(
@@ -116,11 +116,7 @@ public:
   }
 
 private:
-  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    current_pose_ = msg->pose.pose;
-  }
+
 
   void frontierCallback(const swarm_nav_msgs::msg::FrontierArray::SharedPtr msg)
   {
@@ -228,6 +224,21 @@ private:
   void timerCallback()
   {
     std::lock_guard<std::mutex> lock(mutex_);
+
+    // Update current pose from TF
+    try {
+      auto transform = tf_buffer_->lookupTransform(
+        "map",
+        robot_id_ + "/base_footprint",
+        tf2::TimePointZero
+      );
+      current_pose_.position.x = transform.transform.translation.x;
+      current_pose_.position.y = transform.transform.translation.y;
+      current_pose_.position.z = transform.transform.translation.z;
+      current_pose_.orientation = transform.transform.rotation;
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_DEBUG(this->get_logger(), "Could not transform to map: %s", ex.what());
+    }
 
     switch (state_) {
       case STATE_IDLE:
@@ -453,7 +464,8 @@ private:
   std::mutex mutex_;
   rclcpp::TimerBase::SharedPtr timer_;
 
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::Subscription<swarm_nav_msgs::msg::FrontierArray>::SharedPtr frontier_sub_;
   rclcpp::Subscription<swarm_nav_msgs::msg::AuctionAnnounce>::SharedPtr auction_announce_sub_;
   rclcpp::Subscription<swarm_nav_msgs::msg::AuctionBid>::SharedPtr bid_sub_;

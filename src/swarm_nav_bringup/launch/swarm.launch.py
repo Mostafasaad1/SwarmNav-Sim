@@ -124,6 +124,22 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             output='screen'
         ),
 
+        # Mission executor node (lifecycle-based)
+        LifecycleNode(
+            package='swarm_nav_coordination',
+            executable='mission_executor_node',
+            name='mission_executor',
+            namespace='',
+            output='screen',
+            parameters=[{
+                'use_sim_time': True,
+                'robot_id': robot_namespace,
+                'bt_xml_filename': os.path.join(
+                    bringup_dir, 'config', 'behavior_trees', 'mission_tree.xml'),
+                'tick_rate': 10.0,
+            }],
+        ),
+
         # ORCA velocity filter node
         Node(
             package='swarm_nav_navigation',
@@ -199,7 +215,8 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                     'controller_server',
                     'planner_server',
                     'behavior_server',
-                    'bt_navigator'
+                    'bt_navigator',
+                    'mission_executor'
                 ]
             }]
         ),

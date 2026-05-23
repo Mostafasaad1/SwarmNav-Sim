@@ -166,8 +166,25 @@ private:
       return safe_vel;
     }
 
-    // Get current robot yaw and position
-    double robot_yaw = getYaw(current_odom_.pose.pose.orientation);
+    // Get current robot pose in map frame
+    geometry_msgs::msg::Pose current_pose;
+    try {
+      auto transform = tf_buffer_->lookupTransform(
+        "map",
+        robot_id_ + "/base_footprint",
+        tf2::TimePointZero
+      );
+      current_pose.position.x = transform.transform.translation.x;
+      current_pose.position.y = transform.transform.translation.y;
+      current_pose.position.z = transform.transform.translation.z;
+      current_pose.orientation = transform.transform.rotation;
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_DEBUG(this->get_logger(), "Could not transform %s to map: %s", robot_id_.c_str(), ex.what());
+      return desired_vel; // Cannot compute safe velocity without map pose
+    }
+
+    // Get current robot yaw
+    double robot_yaw = getYaw(current_pose.orientation);
 
     // Transform desired velocity to world frame
     // For a diff-drive robot, desired_vel is in body frame.
@@ -183,8 +200,8 @@ private:
 
     for (const auto & neighbor : neighbors_) {
       // Calculate relative position (neighbor wrt robot) in world frame
-      double dx = neighbor.pose.position.x - current_odom_.pose.pose.position.x;
-      double dy = neighbor.pose.position.y - current_odom_.pose.pose.position.y;
+      double dx = neighbor.pose.position.x - current_pose.position.x;
+      double dy = neighbor.pose.position.y - current_pose.position.y;
       double dist = std::sqrt(dx * dx + dy * dy);
 
       // Skip if too far (e.g. outside 10m)
@@ -329,10 +346,28 @@ private:
   {
     std::lock_guard<std::mutex> lock(mutex_);
 
+    // Get current pose in map frame
+    geometry_msgs::msg::TransformStamped transform;
+    try {
+      transform = tf_buffer_->lookupTransform(
+        "map",
+        robot_id_ + "/base_footprint",
+        tf2::TimePointZero
+      );
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_DEBUG(this->get_logger(), "Could not transform %s to map: %s", robot_id_.c_str(), ex.what());
+      return;
+    }
+
     // Publish NeighborState message with current pose and velocity
     swarm_nav_msgs::msg::NeighborState state_msg;
     state_msg.robot_id = robot_id_;
-    state_msg.pose = current_odom_.pose.pose;
+    state_msg.pose.position.x = transform.transform.translation.x;
+    state_msg.pose.position.y = transform.transform.translation.y;
+    state_msg.pose.position.z = transform.transform.translation.z;
+    state_msg.pose.orientation = transform.transform.rotation;
+    
+    // We still use current_odom_ for velocity
     state_msg.velocity = current_odom_.twist.twist;
     state_msg.radius = static_cast<float>(robot_radius_);
 
