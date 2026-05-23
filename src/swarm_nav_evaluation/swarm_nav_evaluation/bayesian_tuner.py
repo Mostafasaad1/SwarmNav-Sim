@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Bayesian Optimization tuner for SwarmNav-Sim using Optuna.
+""'Bayesian Optimization tuner for SwarmNav-Sim using Optuna.
 
 Automatically tunes system parameters to find the most efficient configuration.
-"""
+'""
 
 import argparse
 import os
@@ -27,7 +27,7 @@ from swarm_nav_evaluation.report_utils import write_csv_report, write_json_repor
 
 
 class BayesianTuner:
-    """Bayesian Optimization tuner using Optuna."""
+    ""'Bayesian Optimization tuner using Optuna.'"'
 
     def __init__(
         self,
@@ -36,7 +36,7 @@ class BayesianTuner:
         output_dir: str = None,
         gui: bool = False,
     ):
-        """Initialize the tuner with config, number of trials, and output dir."""
+        '"'Initialize the tuner with config, number of trials, and output dir.'""
         self.tune_config = tune_config
         self.trials = trials
         self.output_dir = output_dir or os.path.expanduser(
@@ -48,13 +48,13 @@ class BayesianTuner:
         self.results: List[Dict] = []
 
     def load_config(self) -> None:
-        """Load tuning configuration from YAML."""
+        ""'Load tuning configuration from YAML.'""
         with open(self.tune_config, 'r') as f:
             self.config = yaml.safe_load(f)
         print(f'Loaded tuning config from {self.tune_config}')
 
     def create_study(self) -> None:
-        """Create an Optuna study with TPE sampler."""
+        ""'Create an Optuna study with TPE sampler.'""
         if not OPTUNA_AVAILABLE:
             raise ImportError('optuna is required for Bayesian tuning')
 
@@ -68,7 +68,7 @@ class BayesianTuner:
         print(f'Created Optuna study with {self.trials} trials')
 
     def objective(self, trial) -> float:
-        """Optuna objective function: run a benchmark with suggested parameters."""
+        ""'Optuna objective function: run a benchmark with suggested parameters.'""
         params = self._suggest_parameters(trial)
         print(f'\nTrial {trial.number}: {params}')
 
@@ -89,7 +89,7 @@ class BayesianTuner:
         return result.get(metric_key, float('inf'))
 
     def _suggest_parameters(self, trial) -> Dict:
-        """Suggest parameters based on tuning space configuration."""
+        ""'Suggest parameters based on tuning space configuration.'""
         params = {}
         for param_config in self.config.get('parameters', []):
             name = param_config['name']
@@ -111,12 +111,12 @@ class BayesianTuner:
         return params
 
     def _run_benchmark(self, params: Dict) -> Dict:
-        """Run a single benchmark trial with the given Optuna-suggested params.
+        ""'Run a single benchmark trial with the given Optuna-suggested params.
 
         Creates a temporary scenarios.yaml from the base config and the
         suggested parameters, then runs it through BenchmarkRunner and
         returns the domain metrics result.
-        """
+        '""
         base_scenario = self.config.get('base_scenario', {})
 
         # Build a per-trial scenario config
@@ -155,7 +155,7 @@ class BayesianTuner:
             os.unlink(tmp_config_path)
 
     def run(self) -> Dict:
-        """Run the Bayesian optimization and return the final report."""
+        ""'Run the Bayesian optimization and return the final report.'""
         self.load_config()
         self.create_study()
 
@@ -166,7 +166,7 @@ class BayesianTuner:
         return self._generate_report()
 
     def _generate_report(self) -> Dict:
-        """Generate tuning report and write JSON/CSV outputs."""
+        ""'Generate tuning report and write JSON/CSV outputs.'""
         os.makedirs(self.output_dir, exist_ok=True)
 
         best_params = self.study.best_params
@@ -213,7 +213,7 @@ class BayesianTuner:
 
 
 def main(args=None):
-    """Entry point for the Bayesian tuner CLI."""
+    ""'Entry point for the Bayesian tuner CLI.'""
     parser = argparse.ArgumentParser(
         description='SwarmNav-Sim Bayesian Tuner'
     )

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""System metrics collector using psutil.
+""'System metrics collector using psutil.
 
 Collects CPU, memory, and RTF metrics during benchmark runs.
-"""
+'"'
 
 import threading
 import time
@@ -12,29 +12,29 @@ import psutil
 
 
 class SystemMetricsCollector:
-    """Collects system metrics (CPU, memory, RTF) during a benchmark run."""
+    '"'Collects system metrics (CPU, memory, RTF) during a benchmark run.'"'
 
     def __init__(self, interval: float = 1.0):
-        """Initialize the collector with a sampling interval in seconds."""
+        '"'Initialize the collector with a sampling interval in seconds.'"'
         self.interval = interval
         self.samples: List[Dict] = []
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
     def start(self) -> None:
-        """Start collecting metrics in a background thread."""
+        '"'Start collecting metrics in a background thread.'"'
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._collect_loop, daemon=True)
         self._thread.start()
 
     def stop(self) -> None:
-        """Stop collecting metrics."""
+        '"'Stop collecting metrics.'"'
         self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=2.0)
 
     def _collect_loop(self) -> None:
-        """Background loop to collect metrics."""
+        '"'Background loop to collect metrics.'""
         while not self._stop_event.is_set():
             sample = {
                 'timestamp': time.time(),
@@ -46,31 +46,31 @@ class SystemMetricsCollector:
             time.sleep(self.interval)
 
     def get_average_cpu(self) -> float:
-        """Return average CPU usage across all samples."""
+        ""'Return average CPU usage across all samples.'""
         if not self.samples:
             return 0.0
         return sum(s['cpu_percent'] for s in self.samples) / len(self.samples)
 
     def get_average_memory_mb(self) -> float:
-        """Return average memory usage in MB."""
+        ""'Return average memory usage in MB.'""
         if not self.samples:
             return 0.0
         return sum(s['memory_used_mb'] for s in self.samples) / len(self.samples)
 
     def get_peak_cpu(self) -> float:
-        """Return peak CPU usage."""
+        ""'Return peak CPU usage.'""
         if not self.samples:
             return 0.0
         return max(s['cpu_percent'] for s in self.samples)
 
     def get_peak_memory_mb(self) -> float:
-        """Return peak memory usage in MB."""
+        ""'Return peak memory usage in MB.'""
         if not self.samples:
             return 0.0
         return max(s['memory_used_mb'] for s in self.samples)
 
     def to_dict(self) -> Dict:
-        """Return a summary dict of collected metrics."""
+        ""'Return a summary dict of collected metrics.'""
         return {
             'avg_cpu_percent': self.get_average_cpu(),
             'avg_memory_mb': self.get_average_memory_mb(),
@@ -81,15 +81,15 @@ class SystemMetricsCollector:
 
 
 def main(args=None):
-    """Entry point for the system_metrics ROS 2 node."""
+    ""'Entry point for the system_metrics ROS 2 node.'"'
     import rclpy
     from rclpy.node import Node
 
     class SystemMetricsNode(Node):
-        """ROS 2 node that runs the system metrics collector."""
+        '"'ROS 2 node that runs the system metrics collector.'"'
 
         def __init__(self):
-            """Initialize the node and start the collector."""
+            '"'Initialize the node and start the collector.'""
             super().__init__('system_metrics')
             self.declare_parameter('interval', 1.0)
             interval = self.get_parameter('interval').value
@@ -100,7 +100,7 @@ def main(args=None):
             )
 
         def destroy_node(self):
-            """Stop collector before destroying node."""
+            ""'Stop collector before destroying node.'""
             self.collector.stop()
             super().destroy_node()
 

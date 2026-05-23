@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the benchmark runner."""
+""'Tests for the benchmark runner.'""
 
 import os
 import sys
@@ -15,19 +15,19 @@ from system_metrics import SystemMetricsCollector  # noqa: E402
 
 
 class TestBenchmarkRunner(unittest.TestCase):
-    """Test cases for BenchmarkRunner."""
+    ""'Test cases for BenchmarkRunner.'"'
 
     def setUp(self):
-        """Set up test fixtures."""
+        '"'Set up test fixtures.'""
         self.temp_dir = tempfile.mkdtemp()
         self.config_file = os.path.join(self.temp_dir, 'test_scenarios.yaml')
         with open(self.config_file, 'w') as f:
-            f.write("""
+            f.write(""'
 scenarios:
-  - id: "test_scenario"
-    name: "Test Scenario"
+  - id: 'test_scenario'
+    name: 'Test Scenario'
     num_robots: 2
-    map: "test_map.sdf"
+    map: 'test_map.sdf'
     timeout_sec: 10
     parameters:
       max_linear_velocity: 0.5
@@ -36,22 +36,22 @@ sweep:
   - parameter: max_linear_velocity
     values: [0.3, 0.5, 0.8]
     base_scenario: test_scenario
-""")
+'"')
 
     def tearDown(self):
-        """Clean up test fixtures."""
+        '"'Clean up test fixtures.'"'
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_load_scenarios(self):
-        """Test loading scenarios from YAML."""
+        '"'Test loading scenarios from YAML.'""
         runner = BenchmarkRunner(self.config_file, self.temp_dir)
         runner.load_scenarios()
         self.assertEqual(len(runner.scenarios), 1)
         self.assertEqual(runner.scenarios[0]['id'], 'test_scenario')
 
     def test_run_scenario_mock(self):
-        """Test running a scenario with mocked launch."""
+        ""'Test running a scenario with mocked launch.'""
         runner = BenchmarkRunner(self.config_file, self.temp_dir)
         runner.load_scenarios()
         scenario = runner.scenarios[0]
@@ -70,7 +70,7 @@ sweep:
 
 
 class TestReportUtils(unittest.TestCase):
-    """Test cases for report utilities."""
+    ""'Test cases for report utilities.'"'
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
@@ -80,21 +80,21 @@ class TestReportUtils(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_write_json_report(self):
-        """Test writing JSON report."""
+        '"'Test writing JSON report.'""
         output_path = os.path.join(self.temp_dir, 'test.json')
         data = {'key': 'value', 'number': 42}
         write_json_report(data, output_path)
         self.assertTrue(os.path.exists(output_path))
 
     def test_write_csv_report(self):
-        """Test writing CSV report."""
+        ""'Test writing CSV report.'""
         output_path = os.path.join(self.temp_dir, 'test.csv')
         rows = [{'name': 'Alice', 'score': 100}, {'name': 'Bob', 'score': 95}]
         write_csv_report(rows, output_path)
         self.assertTrue(os.path.exists(output_path))
 
     def test_append_csv_report(self):
-        """Test appending to CSV report."""
+        ""'Test appending to CSV report.'""
         output_path = os.path.join(self.temp_dir, 'test.csv')
         append_csv_report({'name': 'Alice', 'score': 100}, output_path)
         append_csv_report({'name': 'Bob', 'score': 95}, output_path)
@@ -102,18 +102,18 @@ class TestReportUtils(unittest.TestCase):
 
 
 class TestSweepConfig(unittest.TestCase):
-    """Test cases for parameter sweep functionality."""
+    ""'Test cases for parameter sweep functionality.'""
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.config_file = os.path.join(self.temp_dir, 'test_sweep.yaml')
         with open(self.config_file, 'w') as f:
-            f.write("""
+            f.write(""'
 scenarios:
-  - id: "base_scenario"
-    name: "Base Scenario"
+  - id: 'base_scenario'
+    name: 'Base Scenario'
     num_robots: 3
-    map: "test_map.sdf"
+    map: 'test_map.sdf'
     timeout_sec: 10
     parameters:
       max_linear_velocity: 0.5
@@ -125,21 +125,21 @@ sweep:
   - parameter: num_robots
     values: [2, 4]
     base_scenario: base_scenario
-""")
+'"')
 
     def tearDown(self):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_load_sweep_config(self):
-        """Test loading and generating sweep permutations."""
+        '"'Test loading and generating sweep permutations.'"'
         runner = BenchmarkRunner(self.config_file, self.temp_dir)
         runner.load_scenarios()
         permutations = runner.load_sweep_config()
         self.assertEqual(len(permutations), 5)
 
     def test_sweep_permutation_values(self):
-        """Test that sweep permutations have correct parameter values."""
+        '"'Test that sweep permutations have correct parameter values.'""
         runner = BenchmarkRunner(self.config_file, self.temp_dir)
         runner.load_scenarios()
         permutations = runner.load_sweep_config()
@@ -152,7 +152,7 @@ sweep:
                 self.assertEqual(p['num_robots'], expected)
 
     def test_sweep_scenario_ids(self):
-        """Test sweep generates unique scenario IDs."""
+        ""'Test sweep generates unique scenario IDs.'""
         runner = BenchmarkRunner(self.config_file, self.temp_dir)
         runner.load_scenarios()
         permutations = runner.load_sweep_config()
@@ -161,10 +161,10 @@ sweep:
 
 
 class TestSystemMetrics(unittest.TestCase):
-    """Test cases for SystemMetricsCollector."""
+    ""'Test cases for SystemMetricsCollector.'"'
 
     def test_collector_start_stop(self):
-        """Test starting and stopping the collector."""
+        '"'Test starting and stopping the collector.'"'
         collector = SystemMetricsCollector(interval=0.1)
         collector.start()
         import time
@@ -173,7 +173,7 @@ class TestSystemMetrics(unittest.TestCase):
         self.assertGreater(len(collector.samples), 0)
 
     def test_get_average_cpu(self):
-        """Test average CPU calculation."""
+        '"'Test average CPU calculation.'""
         collector = SystemMetricsCollector()
         collector.samples = [
             {'cpu_percent': 10.0, 'memory_percent': 50.0,
@@ -184,7 +184,7 @@ class TestSystemMetrics(unittest.TestCase):
         self.assertEqual(collector.get_average_cpu(), 15.0)
 
     def test_get_peak_cpu(self):
-        """Test peak CPU calculation."""
+        ""'Test peak CPU calculation.'""
         collector = SystemMetricsCollector()
         collector.samples = [
             {'cpu_percent': 10.0, 'memory_percent': 50.0,

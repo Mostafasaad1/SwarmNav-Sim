@@ -1,3 +1,17 @@
+// Copyright 2026 SwarmNav-Sim Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // frontier_detector_node.cpp
 // Detects unexplored frontiers in the occupancy grid map
 
@@ -181,7 +195,7 @@ private:
         int ny = y + dy;
         int nidx = ny * width + nx;
 
-        if (nx >= 0 && nx < width && ny >= 0 && ny < (int)map->info.height &&
+        if (nx >= 0 && nx < width && ny >= 0 && ny < static_cast<int>(map->info.height) &&
           !visited[nidx] && isFrontierCell(map, nx, ny))
         {
           visited[nidx] = true;
@@ -206,7 +220,7 @@ private:
           if (dx_offset == 0 && dy_offset == 0) {continue;}
           int nx = x + dx_offset;
           int ny = y + dy_offset;
-          if (nx >= 0 && nx < width && ny >= 0 && ny < (int)map->info.height) {
+          if (nx >= 0 && nx < width && ny >= 0 && ny < static_cast<int>(map->info.height)) {
             int nidx = ny * width + nx;
             if (map->data[nidx] == 0) { // Free/explored cell
               dx_sum += dx_offset;

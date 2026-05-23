@@ -2,13 +2,13 @@
 <!-- mission_tree.xml -->
 <!-- BehaviorTree.CPP v4 mission tree for exploration coordination -->
 
-<root main_tree_to_execute="ExplorationMission">
+<root BTCPP_format="4" main_tree_to_execute="ExplorationMission">
   
   <BehaviorTree ID="ExplorationMission">
     <Sequence name="MainSequence">
       
       <!-- Repeat exploration until coverage threshold met -->
-      <RepeatUntilSuccessful num_cycles="100" name="ExplorationLoop">
+      <KeepRunningUntilFailure name="ExplorationLoop">
         <Sequence name="ExplorationCycle">
           
           <!-- Check if map coverage is sufficient -->
@@ -20,26 +20,18 @@
           <FrontierDetectorBT name="DetectFrontiers" frontier_count="{frontier_count}"/>
           
           <!-- Run Vickrey auction for task allocation -->
+          <!-- The assigned_frontier is now a geometry_msgs::msg::PoseStamped -->
           <RunAuctionBT name="RunAuction" 
                         frontier_count="{frontier_count}"
                         assigned_frontier="{assigned_frontier}"/>
           
           <!-- Navigate to assigned frontier -->
           <Fallback name="NavigateToFrontier">
-            <Sequence name="NavigationSequence">
-              
-              <!-- Call Nav2 action to navigate to frontier -->
-              <NavigateToPose goal="{assigned_frontier}" 
-                             server_name="navigate_to_pose"
-                             server_timeout="10"
-                             name="NavigateAction"/>
-              
-              <!-- Wait for navigation result -->
-              <WaitForActionResult server_name="navigate_to_pose"
-                                  timeout="300"
-                                  name="WaitForNavigation"/>
-              
-            </Sequence>
+            <!-- Call Nav2 action to navigate to frontier -->
+            <NavigateToPose goal="{assigned_frontier}" 
+                           server_name="navigate_to_pose"
+                           server_timeout="10"
+                           name="NavigateAction"/>
             
             <!-- If navigation fails, continue to next cycle -->
             <AlwaysSuccess name="ContinueOnFailure"/>
@@ -51,7 +43,7 @@
           </Delay>
           
         </Sequence>
-      </RepeatUntilSuccessful>
+      </KeepRunningUntilFailure>
       
       <!-- Mission complete -->
       <AlwaysSuccess name="MissionComplete"/>

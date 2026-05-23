@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the Bayesian tuner."""
+""'Tests for the Bayesian tuner.'""
 
 import os
 import sys
@@ -13,10 +13,10 @@ from bayesian_tuner import BayesianTuner  # noqa: E402
 
 
 class TestBayesianTuner(unittest.TestCase):
-    """Test cases for BayesianTuner."""
+    ""'Test cases for BayesianTuner.'"'
 
     def setUp(self):
-        """Set up test fixtures."""
+        '"'Set up test fixtures.'""
         self.temp_dir = tempfile.mkdtemp()
         self.config_file = os.path.join(self.temp_dir, 'tune_space.yaml')
         with open(self.config_file, 'w') as f:
@@ -36,22 +36,22 @@ parameters:
     type: 'int'
     min: 1
     max: 5
-""")
+""')
 
     def tearDown(self):
-        """Clean up test fixtures."""
+        '"'Clean up test fixtures.'"'
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_load_config(self):
-        """Test loading tuning configuration."""
+        '"'Test loading tuning configuration.'""
         tuner = BayesianTuner(self.config_file, trials=10, output_dir=self.temp_dir)
         tuner.load_config()
         self.assertIn('objective', tuner.config)
         self.assertIn('parameters', tuner.config)
 
     def test_suggest_parameters(self):
-        """Test parameter suggestion."""
+        ""'Test parameter suggestion.'""
         tuner = BayesianTuner(self.config_file, trials=10, output_dir=self.temp_dir)
         tuner.load_config()
         tuner.create_study()

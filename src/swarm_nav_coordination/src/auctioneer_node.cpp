@@ -1,3 +1,17 @@
+// Copyright 2026 SwarmNav-Sim Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // auctioneer_node.cpp
 // Implements Vickrey auction for decentralized task allocation
 
@@ -49,7 +63,7 @@ public:
     this->declare_parameter("robot_id", "robot_0");
     this->declare_parameter("bid_timeout_ms", 500);
     this->declare_parameter("nominal_speed", 0.5);
-    if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
+    if (!this->has_parameter("use_sim_time")) {this->declare_parameter("use_sim_time", true);}
 
     // Get parameters
     robot_id_ = this->get_parameter("robot_id").as_string();
@@ -116,8 +130,6 @@ public:
   }
 
 private:
-
-
   void frontierCallback(const swarm_nav_msgs::msg::FrontierArray::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -326,7 +338,7 @@ private:
       if (bids.empty()) {continue;}
 
       // Find lowest cost bid (winner) with tie-breaking by robot_id
-      const Bid* winner = nullptr;
+      const Bid * winner = nullptr;
       for (const auto & bid : bids) {
         if (!winner) {
           winner = &bid;
@@ -341,7 +353,7 @@ private:
 
       // Find second-lowest cost (price to pay)
       float second_price = winner->cost;
-      const Bid* second_winner = nullptr;
+      const Bid * second_winner = nullptr;
       for (const auto & bid : bids) {
         if (&bid == winner) {continue;}
         if (!second_winner) {
@@ -387,7 +399,9 @@ private:
       frontier_id.c_str(), winner_id.c_str(), winning_bid);
   }
 
-  float calculateBidCost(const geometry_msgs::msg::Point & frontier_centroid, const std::string & frontier_id)
+  float calculateBidCost(
+    const geometry_msgs::msg::Point & frontier_centroid,
+    const std::string & frontier_id)
   {
     // NOTE: Caller already holds mutex_, do not lock again
     // Spec formula: cost = distance*1.0 + travel_time*0.5 + obstacle_density*2.0 + task_switch*0.3
@@ -421,7 +435,7 @@ private:
     // 4. Task switch penalty: 1.0 if already assigned a different active frontier
     float task_switch_penalty = 0.0f;
     if (!current_assigned_frontier_.empty() &&
-        current_assigned_frontier_ != frontier_id)
+      current_assigned_frontier_ != frontier_id)
     {
       task_switch_penalty = 1.0f;
     }
@@ -477,7 +491,7 @@ private:
   rclcpp::Publisher<swarm_nav_msgs::msg::AuctionResult>::SharedPtr result_pub_;
 };
 
-} // namespace swarm_nav_coordination
+}  // namespace swarm_nav_coordination
 
 int main(int argc, char ** argv)
 {
