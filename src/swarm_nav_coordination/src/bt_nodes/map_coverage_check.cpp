@@ -31,7 +31,29 @@ public:
   {
     node_ = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-    // Subscribe to global map
+    node_->declare_parameter("world_width", -1.0);
+    node_->declare_parameter("world_height", -1.0);
+    node_->declare_parameter("world_origin_x", 0.0);
+    node_->declare_parameter("world_origin_y", 0.0);
+
+    world_width_ = node_->get_parameter("world_width").as_double();
+    world_height_ = node_->get_parameter("world_height").as_double();
+    world_origin_x_ = node_->get_parameter("world_origin_x").as_double();
+    world_origin_y_ = node_->get_parameter("world_origin_y").as_double();
+
+    use_world_bounds_ = (world_width_ > 0 && world_height_ > 0);
+
+    if (use_world_bounds_) {
+      RCLCPP_INFO(
+        node_->get_logger(),
+        "MapCoverageCheck using world bounds: %.1f x %.1f m at (%.1f, %.1f)",
+        world_width_, world_height_, world_origin_x_, world_origin_y_);
+    } else {
+      RCLCPP_INFO(
+        node_->get_logger(),
+        "MapCoverageCheck using map info bounds (world bounds not configured)");
+    }
+
     map_sub_ = node_->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "/swarm/global_map",
       rclcpp::QoS(10).transient_local(),
@@ -51,14 +73,13 @@ public:
   BT::NodeStatus tick() override
   {
     if (!latest_map_) {
+      RCLCPP_DEBUG(node_->get_logger(), "No map received yet, coverage check FAILURE");
       return BT::NodeStatus::FAILURE;
     }
 
-    // Get coverage threshold
     double threshold = 0.95;
     getInput("coverage_threshold", threshold);
 
-    // Calculate coverage
     double coverage = calculateCoverage(latest_map_);
 
     RCLCPP_DEBUG(
@@ -76,22 +97,40 @@ public:
 private:
   double calculateCoverage(const nav_msgs::msg::OccupancyGrid::SharedPtr map)
   {
-    int total_cells = 0;
     int known_cells = 0;
+    int total_map_cells = map->data.size();
 
     for (const auto & cell : map->data) {
-      total_cells++;
-      if (cell != -1) {  // Not unknown
+      if (cell != -1) {
         known_cells++;
       }
     }
 
-    return total_cells > 0 ? static_cast<double>(known_cells) / total_cells : 0.0;
+    if (!use_world_bounds_) {
+      return total_map_cells > 0 ? static_cast<double>(known_cells) / total_map_cells : 0.0;
+    }
+
+    double resolution = map->info.resolution;
+    int64_t total_world_cells = static_cast<int64_t>((world_width_ / resolution) * (world_height_ / resolution));
+
+    RCLCPP_DEBUG(
+      node_->get_logger(),
+      "Coverage: known=%d, map_total=%d, world_total=%ld (%.1fx%.1fm @ %.3fm/cell)",
+      known_cells, total_map_cells, total_world_cells,
+      world_width_, world_height_, resolution);
+
+    return total_world_cells > 0 ? static_cast<double>(known_cells) / total_world_cells : 0.0;
   }
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
   nav_msgs::msg::OccupancyGrid::SharedPtr latest_map_;
+
+  double world_width_;
+  double world_height_;
+  double world_origin_x_;
+  double world_origin_y_;
+  bool use_world_bounds_;
 };
 
 }  // namespace swarm_nav_coordination

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-""'
+"""
 Evaluates map coverage percentage for the swarm exploration mission.
 
 Calculates and tracks coverage metrics over time.
-'""
+"""
 
 import json
 
@@ -55,11 +55,11 @@ class CoverageEvaluator(Node):
         self.get_logger().info('Coverage Evaluator ready')
 
     def map_callback(self, msg):
-        ""'Store latest map.'"'
+        """Store latest map."""
         self.latest_map = msg
 
     def evaluate_coverage(self):
-        '"'Calculate and log coverage percentage.'""
+        """Calculate and log coverage percentage."""
         if self.latest_map is None:
             self.get_logger().warn('No map received yet')
             return
@@ -98,7 +98,7 @@ class CoverageEvaluator(Node):
         self.save_results()
 
     def save_results(self):
-        ""'Save coverage history to JSON file.'""
+        """Save coverage history to JSON file."""
         output_data = {
             'evaluation_start': self.start_time.nanoseconds / 1e9,
             'coverage_history': self.coverage_history,

@@ -161,6 +161,10 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                 'bt_xml_filename': os.path.join(
                     bringup_dir, 'config', 'behavior_trees', 'mission_tree.xml'),
                 'tick_rate': 10.0,
+                'world_width': 40.0,
+                'world_height': 60.0,
+                'world_origin_x': -20.0,
+                'world_origin_y': -30.0,
             }],
         ),
 

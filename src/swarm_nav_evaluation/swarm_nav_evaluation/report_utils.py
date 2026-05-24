@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-""'Report writing utilities for benchmark and tuning results.
+"""Report writing utilities for benchmark and tuning results.
 
 Supports JSON, CSV, and correlation plot generation.
-'"'
+"""
 
 import csv
 import json
@@ -17,7 +17,7 @@ except ImportError:
 
 
 def write_json_report(data: Dict, output_path: str) -> None:
-    '"'Write a dictionary to a JSON file.'""
+    """Write a dictionary to a JSON file."""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:
         json.dump(data, f, indent=2)
@@ -28,7 +28,7 @@ def write_csv_report(
     output_path: str,
     fieldnames: Optional[List[str]] = None,
 ) -> None:
-    ""'Write a list of dictionaries to a CSV file.'""
+    """Write a list of dictionaries to a CSV file."""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     if not rows:
         rows = []
@@ -45,7 +45,7 @@ def append_csv_report(
     output_path: str,
     fieldnames: Optional[List[str]] = None,
 ) -> None:
-    ""'Append a single row to a CSV file.'""
+    """Append a single row to a CSV file."""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     file_exists = os.path.exists(output_path)
     if fieldnames is None:
@@ -63,7 +63,7 @@ def generate_correlation_plot(
     y_col: str,
     output_path: str,
 ) -> None:
-    ""'Generate a simple correlation plot using pandas/matplotlib.'""
+    """Generate a simple correlation plot using pandas/matplotlib."""
     if not PANDAS_AVAILABLE:
         raise ImportError('pandas is required for correlation plotting')
     import matplotlib
@@ -86,7 +86,7 @@ def generate_sweep_report(
     sweep_results: List[Dict],
     output_dir: str,
 ) -> Dict[str, str]:
-    ""'Generate CSV and optional correlation plots for a parameter sweep.'""
+    """Generate CSV and optional correlation plots for a parameter sweep."""
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, 'sweep_results.csv')
     write_csv_report(sweep_results, csv_path)

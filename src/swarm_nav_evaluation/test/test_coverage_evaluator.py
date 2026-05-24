@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-""'
+"""
 Unit tests for coverage evaluator.
 
 This module tests coverage calculation logic.
-'"'
+"""
 
 import pytest
 import json
@@ -12,7 +12,7 @@ from nav_msgs.msg import OccupancyGrid
 
 
 def test_coverage_calculation_synthetic_grid():
-    '"'Test coverage calculation on synthetic OccupancyGrid.'""
+    """Test coverage calculation on synthetic OccupancyGrid."""
     # Create synthetic grid: 10x10 = 100 cells
     grid = OccupancyGrid()
     grid.info.width = 10
@@ -37,7 +37,7 @@ def test_coverage_calculation_synthetic_grid():
 
 
 def test_coverage_calculation_all_known():
-    ""'Test coverage with all cells known.'""
+    """Test coverage with all cells known."""
     grid = OccupancyGrid()
     grid.info.width = 5
     grid.info.height = 5
@@ -51,7 +51,7 @@ def test_coverage_calculation_all_known():
 
 
 def test_coverage_calculation_all_unknown():
-    ""'Test coverage with all cells unknown.'""
+    """Test coverage with all cells unknown."""
     grid = OccupancyGrid()
     grid.info.width = 5
     grid.info.height = 5
@@ -65,7 +65,7 @@ def test_coverage_calculation_all_unknown():
 
 
 def test_coverage_calculation_mixed():
-    ""'Test coverage with mixed known/unknown cells.'""
+    """Test coverage with mixed known/unknown cells."""
     grid = OccupancyGrid()
     grid.info.width = 4
     grid.info.height = 4
@@ -83,7 +83,7 @@ def test_coverage_calculation_mixed():
 
 
 def test_coverage_empty_grid():
-    ""'Test coverage with empty grid.'""
+    """Test coverage with empty grid."""
     grid = OccupancyGrid()
     grid.info.width = 0
     grid.info.height = 0

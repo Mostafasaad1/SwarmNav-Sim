@@ -1,1 +1,3 @@
-{"feature_directory": "specs/005-mission-executor"}
+{
+  "feature_directory": "specs/006-fix-swarm-navigation"
+}

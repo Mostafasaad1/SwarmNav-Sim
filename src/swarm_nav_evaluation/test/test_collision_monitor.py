@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-""'
+"""
 Unit tests for collision monitor.
 
 This module tests collision detection logic.
-'"'
+"""
 
 import math
 
@@ -12,14 +12,14 @@ from geometry_msgs.msg import Pose
 
 
 def calculate_distance(pose1, pose2):
-    '"'Calculate Euclidean distance between two poses.'"'
+    """Calculate Euclidean distance between two poses."""
     dx = pose1.position.x - pose2.position.x
     dy = pose1.position.y - pose2.position.y
     return math.sqrt(dx * dx + dy * dy)
 
 
 def test_collision_detection_below_threshold():
-    '"'Test collision detection when distance is below threshold.'""
+    """Test collision detection when distance is below threshold."""
     # Create two poses close together
     pose1 = Pose()
     pose1.position.x = 0.0
@@ -42,7 +42,7 @@ def test_collision_detection_below_threshold():
 
 
 def test_collision_detection_above_threshold():
-    ""'Test no collision when distance is above threshold.'""
+    """Test no collision when distance is above threshold."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0
@@ -64,7 +64,7 @@ def test_collision_detection_above_threshold():
 
 
 def test_collision_detection_exact_threshold():
-    ""'Test collision detection at exact threshold.'""
+    """Test collision detection at exact threshold."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0
@@ -86,7 +86,7 @@ def test_collision_detection_exact_threshold():
 
 
 def test_collision_detection_diagonal():
-    ""'Test collision detection with diagonal distance.'""
+    """Test collision detection with diagonal distance."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0
@@ -106,7 +106,7 @@ def test_collision_detection_diagonal():
 
 
 def test_collision_detection_same_position():
-    ""'Test collision detection when robots are at same position.'""
+    """Test collision detection when robots are at same position."""
     pose1 = Pose()
     pose1.position.x = 1.0
     pose1.position.y = 2.0
@@ -125,7 +125,7 @@ def test_collision_detection_same_position():
 
 
 def test_collision_detection_far_apart():
-    ""'Test no collision when robots are far apart.'""
+    """Test no collision when robots are far apart."""
     pose1 = Pose()
     pose1.position.x = 0.0
     pose1.position.y = 0.0

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-""'Benchmark runner for SwarmNav-Sim.
+"""Benchmark runner for SwarmNav-Sim.
 
 Executes a suite of predefined benchmark scenarios, collects metrics,
 and generates consolidated performance reports.
-'"'
+"""
 
 import argparse
 import json
@@ -24,10 +24,10 @@ from swarm_nav_evaluation.system_metrics import SystemMetricsCollector
 
 
 class BenchmarkRunner:
-    '"'Runs a suite of benchmark scenarios and generates reports.'"'
+    """Runs a suite of benchmark scenarios and generates reports."""
 
     def __init__(self, config_file: str, output_dir: str, gui: bool = False):
-        '"'Initialize the runner with config file, output dir, and GUI flag.'"'
+        """Initialize the runner with config file, output dir, and GUI flag."""
         self.config_file = config_file
         self.output_dir = output_dir
         self.gui = gui
@@ -42,21 +42,21 @@ class BenchmarkRunner:
         signal.signal(signal.SIGTERM, self._signal_handler)
 
     def _signal_handler(self, signum, frame):
-        '"'Handle shutdown signals.'""
+        """Handle shutdown signals."""
         print(f'\nReceived signal {signum}. Aborting benchmark...')
         self._abort = True
         if self._current_process:
             self._current_process.terminate()
 
     def load_scenarios(self) -> None:
-        ""'Load scenarios from YAML config file.'""
+        """Load scenarios from YAML config file."""
         with open(self.config_file, 'r') as f:
             config = yaml.safe_load(f)
         self.scenarios = config.get('scenarios', [])
         print(f'Loaded {len(self.scenarios)} scenarios from {self.config_file}')
 
     def load_sweep_config(self) -> List[Dict]:
-        ""'Parse and generate all permutations from the sweep config.'""
+        """Parse and generate all permutations from the sweep config."""
         with open(self.config_file, 'r') as f:
             config = yaml.safe_load(f)
         sweep_configs = config.get('sweep', [])
@@ -92,7 +92,7 @@ class BenchmarkRunner:
         return permutations
 
     def run_sweep(self) -> List[Dict]:
-        ""'Run parameter sweep and generate sensitivity report.'""
+        """Run parameter sweep and generate sensitivity report."""
         self.load_scenarios()
         sweep_scenarios = self.load_sweep_config()
         if not sweep_scenarios:
@@ -115,7 +115,7 @@ class BenchmarkRunner:
         return self.sweep_results
 
     def run_all(self) -> List[Dict]:
-        '"'Run all scenarios sequentially.'""
+        """Run all scenarios sequentially."""
         self.load_scenarios()
         os.makedirs(self.output_dir, exist_ok=True)
 
@@ -140,7 +140,7 @@ class BenchmarkRunner:
         return self.results
 
     def run_scenario(self, scenario: Dict) -> Dict:
-        '"'Run a single benchmark scenario.'""
+        """Run a single benchmark scenario."""
         scenario_id = scenario['id']
         sep = '=' * 60
         print(f'\n{sep}')
@@ -200,7 +200,7 @@ class BenchmarkRunner:
         return result
 
     def _read_domain_metrics(self, scenario_output_dir: str) -> Dict:
-        ""'Read domain metrics from evaluation node JSON output files.'""
+        """Read domain metrics from evaluation node JSON output files."""
         domain = {
             'coverage_percentage': 0.0,
             'collision_count': 0,
@@ -248,7 +248,7 @@ class BenchmarkRunner:
         return domain
 
     def _launch_scenario(self, scenario: Dict) -> None:
-        ""'Launch a scenario using ROS 2 launch.'""
+        """Launch a scenario using ROS 2 launch."""
         timeout_sec = scenario.get('timeout_sec', 300)
         num_robots = scenario.get('num_robots', 3)
         scenario_output_dir = os.path.join(self.output_dir, scenario['id'])
@@ -288,7 +288,7 @@ class BenchmarkRunner:
             self._current_process = None
 
     def _generate_consolidated_report(self) -> None:
-        ""'Generate a consolidated report from all scenario results.'""
+        """Generate a consolidated report from all scenario results."""
         report = {
             'benchmark_timestamp': datetime.now().isoformat(),
             'total_scenarios': len(self.scenarios),
@@ -313,7 +313,7 @@ class BenchmarkRunner:
 
 
 def main(args=None):
-    ""'Entry point for the benchmark runner CLI.'""
+    """Entry point for the benchmark runner CLI."""
     parser = argparse.ArgumentParser(
         description='SwarmNav-Sim Benchmark Runner'
     )

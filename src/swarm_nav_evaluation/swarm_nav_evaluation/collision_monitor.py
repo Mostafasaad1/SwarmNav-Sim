@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-""'
+"""
 Monitors for collisions between robots and obstacles.
 
 Tracks robot positions and detects collision events.
-'""
+"""
 
 import json
 
@@ -61,11 +61,11 @@ class CollisionMonitor(Node):
         self.get_logger().info('Collision Monitor ready')
 
     def odom_callback(self, msg, robot_id):
-        ""'Store latest robot pose.'"'
+        """Store latest robot pose."""
         self.robot_poses[robot_id] = msg.pose.pose
 
     def check_collisions(self):
-        '"'Check for collisions between all robot pairs.'"'
+        """Check for collisions between all robot pairs."""
         if len(self.robot_poses) < 2:
             return
 
@@ -89,7 +89,7 @@ class CollisionMonitor(Node):
                     self.record_collision(robot_a, robot_b, distance)
 
     def record_collision(self, robot_a, robot_b, distance):
-        '"'Record a collision event.'""
+        """Record a collision event."""
         elapsed_time = (self.get_clock().now() -
                         self.start_time).nanoseconds / 1e9
 
@@ -112,7 +112,7 @@ class CollisionMonitor(Node):
         self.save_results()
 
     def save_results(self):
-        ""'Save collision data to JSON file.'""
+        """Save collision data to JSON file."""
         output_data = {
             'evaluation_start': self.start_time.nanoseconds / 1e9,
             'num_robots': self.num_robots,
