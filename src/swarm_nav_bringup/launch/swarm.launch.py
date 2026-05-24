@@ -82,19 +82,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             parameters=[{'use_sim_time': True}],
         ),
 
-        # Graph merge node for multi-robot SLAM
-        Node(
-            package='swarm_nav_slam',
-            executable='graph_merge_node',
-            name='graph_merge_node',
-            parameters=[{
-                'use_sim_time': True,
-                'robot_id': robot_namespace,
-                'rendezvous_distance': 3.0,
-                'shared_graph_topic': '/mrg_slam/shared_graph'
-            }],
-            output='screen'
-        ),
+
 
         # Local SLAM node to build the occupancy grid for this robot
         Node(
@@ -306,13 +294,13 @@ def generate_launch_description():
 
     max_linear_velocity_arg = DeclareLaunchArgument(
         'max_linear_velocity',
-        default_value='0.5',
+        default_value='2.0',
         description='Maximum linear velocity'
     )
 
     max_angular_velocity_arg = DeclareLaunchArgument(
         'max_angular_velocity',
-        default_value='1.0',
+        default_value='2.0',
         description='Maximum angular velocity'
     )
 
@@ -410,6 +398,23 @@ def generate_launch_description():
         }],
         output='screen'
     ))
+
+    # Global Graph Merge Node (merges individual maps into global map)
+    def create_graph_merge_node(context, *args, **kwargs):
+        num_robots_val = int(LaunchConfiguration('num_robots').perform(context))
+        robot_ids = [f'robot_{i}' for i in range(num_robots_val)]
+        return [Node(
+            package='swarm_nav_slam',
+            executable='graph_merge_node',
+            name='global_graph_merge_node',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'robot_ids': robot_ids
+            }],
+            output='screen'
+        )]
+        
+    ld.add_action(OpaqueFunction(function=create_graph_merge_node))
 
     # Obstacle tracker node (publishes dynamic obstacles)
     ld.add_action(Node(

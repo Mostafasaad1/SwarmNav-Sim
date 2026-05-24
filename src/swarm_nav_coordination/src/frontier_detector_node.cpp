@@ -76,6 +76,16 @@ public:
       "frontier_markers", 10
     );
 
+    // Timer to continuously publish latest known frontiers
+    timer_ = this->create_wall_timer(
+      std::chrono::milliseconds(1000),
+      [this]() {
+        if (!latest_frontiers_.empty()) {
+          publishFrontiers(latest_frontiers_);
+          publishMarkers(latest_frontiers_);
+        }
+      });
+
     RCLCPP_INFO(this->get_logger(), "Frontier Detector ready");
   }
 
@@ -92,10 +102,11 @@ private:
 
     RCLCPP_INFO(this->get_logger(), "Detected %zu frontiers", frontiers.size());
 
-    // Publish frontiers
-    publishFrontiers(frontiers);
+    // Cache latest frontiers for timer
+    latest_frontiers_ = frontiers;
 
-    // Publish visualization markers
+    // Publish immediately on map update
+    publishFrontiers(frontiers);
     publishMarkers(frontiers);
   }
 
@@ -307,7 +318,7 @@ private:
   {
     swarm_nav_msgs::msg::FrontierArray frontier_array;
     frontier_array.header.stamp = this->now();
-    frontier_array.header.frame_id = "map";
+    frontier_array.header.frame_id = robot_id_ + "/map";
 
     for (const auto & frontier : frontiers) {
       swarm_nav_msgs::msg::Frontier frontier_msg;
@@ -327,9 +338,13 @@ private:
   {
     visualization_msgs::msg::MarkerArray marker_array;
 
+    visualization_msgs::msg::Marker delete_all;
+    delete_all.action = visualization_msgs::msg::Marker::DELETEALL;
+    marker_array.markers.push_back(delete_all);
+
     for (size_t i = 0; i < frontiers.size(); ++i) {
       visualization_msgs::msg::Marker marker;
-      marker.header.frame_id = "map";
+      marker.header.frame_id = robot_id_ + "/map";
       marker.header.stamp = this->now();
       marker.ns = "frontiers";
       marker.id = i;
@@ -360,10 +375,12 @@ private:
   double frontier_travel_distance_;
 
   nav_msgs::msg::OccupancyGrid::SharedPtr latest_map_;
+  std::vector<FrontierData> latest_frontiers_;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
   rclcpp::Publisher<swarm_nav_msgs::msg::FrontierArray>::SharedPtr frontier_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 
 } // namespace swarm_nav_coordination

@@ -31,15 +31,18 @@ public:
   {
     node_ = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-    node_->declare_parameter("world_width", -1.0);
-    node_->declare_parameter("world_height", -1.0);
-    node_->declare_parameter("world_origin_x", 0.0);
-    node_->declare_parameter("world_origin_y", 0.0);
-
-    world_width_ = node_->get_parameter("world_width").as_double();
-    world_height_ = node_->get_parameter("world_height").as_double();
-    world_origin_x_ = node_->get_parameter("world_origin_x").as_double();
-    world_origin_y_ = node_->get_parameter("world_origin_y").as_double();
+    if (!config.blackboard->get<double>("world_width", world_width_)) {
+      world_width_ = -1.0;
+    }
+    if (!config.blackboard->get<double>("world_height", world_height_)) {
+      world_height_ = -1.0;
+    }
+    if (!config.blackboard->get<double>("world_origin_x", world_origin_x_)) {
+      world_origin_x_ = 0.0;
+    }
+    if (!config.blackboard->get<double>("world_origin_y", world_origin_y_)) {
+      world_origin_y_ = 0.0;
+    }
 
     use_world_bounds_ = (world_width_ > 0 && world_height_ > 0);
 

@@ -52,6 +52,10 @@ MissionExecutorNode::MissionExecutorNode(const rclcpp::NodeOptions & options)
   declare_parameter("robot_id", "robot_0");
   declare_parameter("bt_xml_filename", "");
   declare_parameter("tick_rate", 10.0);
+  declare_parameter("world_width", -1.0);
+  declare_parameter("world_height", -1.0);
+  declare_parameter("world_origin_x", 0.0);
+  declare_parameter("world_origin_y", 0.0);
 
   // Separate node for BT plugins – LifecycleNode is not an rclcpp::Node.
   // This node's callbacks MUST be spun separately (see start_bt_spin).
@@ -147,6 +151,12 @@ CallbackReturn MissionExecutorNode::on_configure(const rclcpp_lifecycle::State &
   auto blackboard = BT::Blackboard::create();
   blackboard->set("node", bt_node_);
   blackboard->set("robot_id", robot_id_);
+
+  // Set world bounds in blackboard for MapCoverageCheck
+  blackboard->set<double>("world_width", get_parameter("world_width").as_double());
+  blackboard->set<double>("world_height", get_parameter("world_height").as_double());
+  blackboard->set<double>("world_origin_x", get_parameter("world_origin_x").as_double());
+  blackboard->set<double>("world_origin_y", get_parameter("world_origin_y").as_double());
   // Nav2 BT action nodes (NavigateToPose, etc.) read these keys from the
   // blackboard during tree construction — seed them with bt_navigator defaults.
   blackboard->set<std::chrono::milliseconds>("bt_loop_duration",

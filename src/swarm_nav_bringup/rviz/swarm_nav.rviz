@@ -6,7 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Map Robot_01
+        - /Scan_01
+        - /Scan_11
+        - /Scan_21
         - /Pose1
         - /Pose1/Topic1
       Splitter Ratio: 0.5
@@ -58,6 +60,8 @@ Visualization Manager:
           Value: true
         robot_0/left_wheel:
           Value: true
+        robot_0/map:
+          Value: true
         robot_0/odom:
           Value: true
         robot_0/right_wheel:
@@ -71,6 +75,8 @@ Visualization Manager:
         robot_1/laser_link:
           Value: true
         robot_1/left_wheel:
+          Value: true
+        robot_1/map:
           Value: true
         robot_1/odom:
           Value: true
@@ -86,6 +92,8 @@ Visualization Manager:
           Value: true
         robot_2/left_wheel:
           Value: true
+        robot_2/map:
+          Value: true
         robot_2/odom:
           Value: true
         robot_2/right_wheel:
@@ -97,39 +105,42 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          robot_0/odom:
-            robot_0/base_footprint:
-              robot_0/base_link:
-                robot_0/caster_link:
-                  {}
-                robot_0/laser_link:
-                  {}
-                robot_0/left_wheel:
-                  {}
-                robot_0/right_wheel:
-                  {}
-          robot_1/odom:
-            robot_1/base_footprint:
-              robot_1/base_link:
-                robot_1/caster_link:
-                  {}
-                robot_1/laser_link:
-                  {}
-                robot_1/left_wheel:
-                  {}
-                robot_1/right_wheel:
-                  {}
-          robot_2/odom:
-            robot_2/base_footprint:
-              robot_2/base_link:
-                robot_2/caster_link:
-                  {}
-                robot_2/laser_link:
-                  {}
-                robot_2/left_wheel:
-                  {}
-                robot_2/right_wheel:
-                  {}
+          robot_0/map:
+            robot_0/odom:
+              robot_0/base_footprint:
+                robot_0/base_link:
+                  robot_0/caster_link:
+                    {}
+                  robot_0/laser_link:
+                    {}
+                  robot_0/left_wheel:
+                    {}
+                  robot_0/right_wheel:
+                    {}
+          robot_1/map:
+            robot_1/odom:
+              robot_1/base_footprint:
+                robot_1/base_link:
+                  robot_1/caster_link:
+                    {}
+                  robot_1/laser_link:
+                    {}
+                  robot_1/left_wheel:
+                    {}
+                  robot_1/right_wheel:
+                    {}
+          robot_2/map:
+            robot_2/odom:
+              robot_2/base_footprint:
+                robot_2/base_link:
+                  robot_2/caster_link:
+                    {}
+                  robot_2/laser_link:
+                    {}
+                  robot_2/left_wheel:
+                    {}
+                  robot_2/right_wheel:
+                    {}
       Update Interval: 0
       Value: true
     - Alpha: 0.699999988079071
@@ -392,14 +403,14 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
+        Max Value: 0.22499999403953552
+        Min Value: 0.22499999403953552
         Value: true
       Axis: Z
       Channel Name: intensity
       Class: rviz_default_plugins/LaserScan
       Color: 255; 80; 80
-      Color Transformer: Intensity
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -433,7 +444,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz_default_plugins/LaserScan
       Color: 80; 255; 80
-      Color Transformer: Intensity
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -467,7 +478,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz_default_plugins/LaserScan
       Color: 80; 80; 255
-      Color Transformer: Intensity
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -579,7 +590,7 @@ Visualization Manager:
       Enabled: true
       Name: Frontiers_Robot_0
       Namespaces:
-        {}
+        frontiers: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -591,7 +602,7 @@ Visualization Manager:
       Enabled: true
       Name: Frontiers_Robot_1
       Namespaces:
-        {}
+        frontiers: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -603,7 +614,7 @@ Visualization Manager:
       Enabled: true
       Name: Frontiers_Robot_2
       Namespaces:
-        {}
+        frontiers: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -710,25 +721,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 55.10440444946289
+      Distance: 19.453731536865234
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -6.3202433586120605
+        Y: -8.15829849243164
+        Z: 8.55595588684082
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6753982305526733
+      Pitch: 0.8753982782363892
       Target Frame: map
       Value: Orbit (rviz_default_plugins)
-      Yaw: 1.0053980350494385
+      Yaw: 1.0253980159759521
     Saved: ~
 Window Geometry:
   Displays:

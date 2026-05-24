@@ -9,10 +9,9 @@ import json
 
 import numpy as np
 import rclpy
-import json
-import numpy as np
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, DurabilityPolicy
 
 
 class CoverageEvaluator(Node):
@@ -33,12 +32,17 @@ class CoverageEvaluator(Node):
         self.get_logger().info(
             f'Evaluation interval: {self.evaluation_interval}s')
 
+        qos_profile = QoSProfile(
+            depth=10,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL
+        )
+        
         # Subscribe to global map
         self.map_sub = self.create_subscription(
             OccupancyGrid,
             '/swarm/global_map',
             self.map_callback,
-            10
+            qos_profile
         )
 
         # Storage for results

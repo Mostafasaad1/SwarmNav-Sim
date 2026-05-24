@@ -1,18 +1,18 @@
 // graph_merge_node.cpp
-// Node for handling pose graph exchange and optimization between robots
+// Centralized Node for merging individual robot maps into a global map
 
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
-#include "swarm_nav_msgs/msg/neighbor_state_array.hpp"
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <string>
 #include <vector>
 #include <map>
 #include <mutex>
+#include <algorithm>
 
 namespace swarm_nav_slam
 {
@@ -24,38 +24,30 @@ public:
   : Node("graph_merge_node")
   {
     // Declare parameters
-    this->declare_parameter("robot_id", "robot_0");
-    this->declare_parameter("rendezvous_distance", 3.0);
-    this->declare_parameter("shared_graph_topic", "/mrg_slam/shared_graph");
+    this->declare_parameter("robot_ids", std::vector<std::string>{"robot_0", "robot_1", "robot_2"});
     if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
 
     // Get parameters
-    robot_id_ = this->get_parameter("robot_id").as_string();
-    rendezvous_distance_ = this->get_parameter("rendezvous_distance").as_double();
-    shared_graph_topic_ = this->get_parameter("shared_graph_topic").as_string();
+    robot_ids_ = this->get_parameter("robot_ids").as_string_array();
 
-    RCLCPP_INFO(this->get_logger(), "Graph Merge Node initialized for %s", robot_id_.c_str());
-    RCLCPP_INFO(this->get_logger(), "Rendezvous distance: %.2f meters", rendezvous_distance_);
+    RCLCPP_INFO(this->get_logger(), "Global Graph Merge Node initialized for %zu robots", robot_ids_.size());
 
     // Initialize TF buffer and listener
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    // Subscribe to neighbor states for rendezvous detection
-    neighbor_sub_ = this->create_subscription<swarm_nav_msgs::msg::NeighborStateArray>(
-      "/swarm/neighbor_states",
-      rclcpp::SensorDataQoS(),
-      [this](swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg) {
-        this->neighborCallback(msg);
-      });
-
-    // Subscribe to own map
-    own_map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-      "map",
-      rclcpp::QoS(10).transient_local(),
-      [this](nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-        this->ownMapCallback(msg);
-      });
+    // Subscribe to all robot maps
+    for (const auto& robot_id : robot_ids_) {
+      std::string topic = "/" + robot_id + "/map";
+      map_subs_[robot_id] = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
+        topic,
+        rclcpp::QoS(10).transient_local(),
+        [this, robot_id](nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+          std::lock_guard<std::mutex> lock(map_mutex_);
+          robot_maps_[robot_id] = msg;
+          RCLCPP_INFO_ONCE(this->get_logger(), "Received first map from %s", robot_id.c_str());
+        });
+    }
 
     // Publisher for merged global map
     global_map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
@@ -63,147 +55,130 @@ public:
       rclcpp::QoS(10).transient_local()
     );
 
-    // Create timer for periodic graph exchange checks
+    // Create timer for periodic map merging
     timer_ = this->create_wall_timer(
-      std::chrono::seconds(1),
-      [this]() { this->timerCallback(); });
+      std::chrono::seconds(2),
+      [this]() { this->mergeGraphs(); });
   }
 
 private:
-  void ownMapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
-  {
-    std::lock_guard<std::mutex> lock(graph_mutex_);
-    own_map_ = msg;
-  }
-
-  void neighborCallback(const swarm_nav_msgs::msg::NeighborStateArray::SharedPtr msg)
-  {
-    std::lock_guard<std::mutex> lock(graph_mutex_);
-
-    // Update neighbor poses
-    neighbor_poses_.clear();
-    for (const auto & neighbor : msg->neighbors) {
-      if (neighbor.robot_id != robot_id_) {
-        neighbor_poses_[neighbor.robot_id] = neighbor.pose;
-      }
-    }
-  }
-
-  void timerCallback()
-  {
-    std::lock_guard<std::mutex> lock(graph_mutex_);
-
-    // Check for nearby robots
-    for (const auto & [neighbor_id, neighbor_pose] : neighbor_poses_) {
-      if (isRobotNearby(neighbor_id, neighbor_pose)) {
-        RCLCPP_INFO(
-          this->get_logger(), "Robot %s is nearby (< %.2fm), triggering graph merge",
-          neighbor_id.c_str(), rendezvous_distance_);
-
-        // Subscribe to neighbor's map if not already subscribed
-        if (neighbor_map_subs_.find(neighbor_id) == neighbor_map_subs_.end()) {
-          std::string neighbor_map_topic = neighbor_id + "/map";
-          neighbor_map_subs_[neighbor_id] = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-            neighbor_map_topic,
-            rclcpp::QoS(10).transient_local(),
-            [this, neighbor_id](nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-              std::lock_guard<std::mutex> lock(graph_mutex_);
-              neighbor_maps_[neighbor_id] = msg;
-              RCLCPP_INFO(this->get_logger(), "Received map from %s", neighbor_id.c_str());
-            }
-          );
-        }
-
-        // Attempt to merge if we have both maps
-        if (own_map_ && neighbor_maps_.find(neighbor_id) != neighbor_maps_.end()) {
-          mergeGraphs();
-        }
-        break;
-      }
-    }
-  }
-
-  bool isRobotNearby(
-    const std::string & neighbor_id,
-    const geometry_msgs::msg::Pose & neighbor_pose)
-  {
-    // Get own pose from TF
-    try {
-      auto transform = tf_buffer_->lookupTransform(
-        "map",
-        robot_id_ + "/base_footprint",
-        tf2::TimePointZero
-      );
-
-      // Calculate Euclidean distance
-      double dx = neighbor_pose.position.x - transform.transform.translation.x;
-      double dy = neighbor_pose.position.y - transform.transform.translation.y;
-      double distance = std::sqrt(dx * dx + dy * dy);
-
-      return distance < rendezvous_distance_;
-
-    } catch (const tf2::TransformException & ex) {
-      RCLCPP_DEBUG(this->get_logger(), "Could not get transform: %s", ex.what());
-      return false;
-    }
-  }
-
   void mergeGraphs()
   {
-    // Simplified map overlay merging: cell-wise max occupancy
-    if (!own_map_) {
-      RCLCPP_WARN(this->get_logger(), "No own map available for merging");
+    std::lock_guard<std::mutex> lock(map_mutex_);
+
+    if (robot_maps_.empty()) {
       return;
     }
 
-    // Start with own map as base
-    auto merged_map = std::make_shared<nav_msgs::msg::OccupancyGrid>(*own_map_);
+    double min_x = std::numeric_limits<double>::max();
+    double min_y = std::numeric_limits<double>::max();
+    double max_x = std::numeric_limits<double>::lowest();
+    double max_y = std::numeric_limits<double>::lowest();
+
+    double resolution = 0.05; // Default
+
+    // First pass: find the global bounding box
+    std::map<std::string, geometry_msgs::msg::TransformStamped> transforms;
+    
+    for (const auto& [robot_id, map_msg] : robot_maps_) {
+      if (!map_msg) continue;
+      resolution = map_msg->info.resolution;
+
+      try {
+        auto transform = tf_buffer_->lookupTransform(
+          "map",
+          robot_id + "/map",
+          tf2::TimePointZero
+        );
+        transforms[robot_id] = transform;
+
+        // Origin of this map in its own frame
+        double local_ox = map_msg->info.origin.position.x;
+        double local_oy = map_msg->info.origin.position.y;
+        double local_max_x = local_ox + map_msg->info.width * resolution;
+        double local_max_y = local_oy + map_msg->info.height * resolution;
+
+        // Transform corners to global frame
+        geometry_msgs::msg::Pose p1, p2, p3, p4;
+        p1.position.x = local_ox; p1.position.y = local_oy;
+        p2.position.x = local_max_x; p2.position.y = local_oy;
+        p3.position.x = local_ox; p3.position.y = local_max_y;
+        p4.position.x = local_max_x; p4.position.y = local_max_y;
+
+        geometry_msgs::msg::Pose p1_t, p2_t, p3_t, p4_t;
+        tf2::doTransform(p1, p1_t, transform);
+        tf2::doTransform(p2, p2_t, transform);
+        tf2::doTransform(p3, p3_t, transform);
+        tf2::doTransform(p4, p4_t, transform);
+
+        min_x = std::min({min_x, p1_t.position.x, p2_t.position.x, p3_t.position.x, p4_t.position.x});
+        min_y = std::min({min_y, p1_t.position.y, p2_t.position.y, p3_t.position.y, p4_t.position.y});
+        max_x = std::max({max_x, p1_t.position.x, p2_t.position.x, p3_t.position.x, p4_t.position.x});
+        max_y = std::max({max_y, p1_t.position.y, p2_t.position.y, p3_t.position.y, p4_t.position.y});
+
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_WARN(this->get_logger(), "Could not get transform for %s: %s", robot_id.c_str(), ex.what());
+      }
+    }
+
+    if (transforms.empty()) {
+      return; // No valid transforms yet
+    }
+
+    // Create the global map
+    auto merged_map = std::make_shared<nav_msgs::msg::OccupancyGrid>();
     merged_map->header.stamp = this->now();
     merged_map->header.frame_id = "map";
+    merged_map->info.resolution = resolution;
+    merged_map->info.origin.position.x = min_x;
+    merged_map->info.origin.position.y = min_y;
+    merged_map->info.origin.orientation.w = 1.0;
+
+    int width = std::ceil((max_x - min_x) / resolution);
+    int height = std::ceil((max_y - min_y) / resolution);
+
+    if (width <= 0 || height <= 0) return;
+
+    merged_map->info.width = width;
+    merged_map->info.height = height;
+    merged_map->data.assign(width * height, -1);
 
     int merge_count = 0;
 
-    // Merge each neighbor's map
-    for (const auto & [neighbor_id, neighbor_map] : neighbor_maps_) {
-      if (!neighbor_map) {continue;}
+    // Second pass: merge cells
+    for (const auto& [robot_id, map_msg] : robot_maps_) {
+      if (!map_msg || transforms.find(robot_id) == transforms.end()) continue;
+      
+      auto& transform = transforms[robot_id];
 
-      RCLCPP_INFO(this->get_logger(), "Merging map from %s", neighbor_id.c_str());
+      for (unsigned int ny = 0; ny < map_msg->info.height; ++ny) {
+        for (unsigned int nx = 0; nx < map_msg->info.width; ++nx) {
+          int n_idx = ny * map_msg->info.width + nx;
+          int8_t neighbor_value = map_msg->data[n_idx];
 
-      // For each cell in neighbor's map, transform to own map frame and merge
-      for (unsigned int ny = 0; ny < neighbor_map->info.height; ++ny) {
-        for (unsigned int nx = 0; nx < neighbor_map->info.width; ++nx) {
-          int n_idx = ny * neighbor_map->info.width + nx;
-          int8_t neighbor_value = neighbor_map->data[n_idx];
+          if (neighbor_value == -1) continue;
 
-          // Skip unknown cells
-          if (neighbor_value == -1) {continue;}
+          // Local coordinate
+          double local_x = map_msg->info.origin.position.x + (nx + 0.5) * resolution;
+          double local_y = map_msg->info.origin.position.y + (ny + 0.5) * resolution;
 
-          // Convert neighbor cell to world coordinates
-          double world_x = neighbor_map->info.origin.position.x +
-            (nx + 0.5) * neighbor_map->info.resolution;
-          double world_y = neighbor_map->info.origin.position.y +
-            (ny + 0.5) * neighbor_map->info.resolution;
+          geometry_msgs::msg::Pose local_pose, global_pose;
+          local_pose.position.x = local_x;
+          local_pose.position.y = local_y;
+          tf2::doTransform(local_pose, global_pose, transform);
 
-          // TODO: Apply TF transform from neighbor frame to own frame
-          // For now, assume same coordinate frame (simplified)
+          // Global map index
+          int mx = static_cast<int>((global_pose.position.x - min_x) / resolution);
+          int my = static_cast<int>((global_pose.position.y - min_y) / resolution);
 
-          // Convert to own map coordinates
-          int mx = static_cast<int>((world_x - merged_map->info.origin.position.x) /
-            merged_map->info.resolution);
-          int my = static_cast<int>((world_y - merged_map->info.origin.position.y) /
-            merged_map->info.resolution);
-
-          // Check bounds
-          if (mx >= 0 && mx < static_cast<int>(merged_map->info.width) &&
-            my >= 0 && my < static_cast<int>(merged_map->info.height))
-          {
-            int m_idx = my * merged_map->info.width + mx;
-
-            // Cell-wise average occupancy to handle dynamic obstacles and sensor noise
+          if (mx >= 0 && mx < width && my >= 0 && my < height) {
+            int m_idx = my * width + mx;
+            
+            // Cell-wise max occupancy (pessimistic merging)
             if (merged_map->data[m_idx] == -1) {
               merged_map->data[m_idx] = neighbor_value;
             } else {
-              merged_map->data[m_idx] = static_cast<int8_t>((merged_map->data[m_idx] + neighbor_value) / 2);
+              merged_map->data[m_idx] = std::max(merged_map->data[m_idx], neighbor_value);
             }
             merge_count++;
           }
@@ -213,32 +188,17 @@ private:
 
     // Publish merged global map
     global_map_pub_->publish(*merged_map);
-    RCLCPP_INFO(
-      this->get_logger(), "Published merged global map with %d cells merged",
-      merge_count);
+    RCLCPP_DEBUG(this->get_logger(), "Published merged global map with %d cells", merge_count);
   }
 
-  // Member variables
-  std::string robot_id_;
-  double rendezvous_distance_;
-  std::string shared_graph_topic_;
-
+  std::vector<std::string> robot_ids_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-
   rclcpp::TimerBase::SharedPtr timer_;
-
-  std::mutex graph_mutex_;
-  std::map<std::string, geometry_msgs::msg::Pose> neighbor_poses_;
-  std::map<std::string, std::vector<geometry_msgs::msg::PoseStamped>> neighbor_graphs_;
-
-  nav_msgs::msg::OccupancyGrid::SharedPtr own_map_;
-  std::map<std::string, nav_msgs::msg::OccupancyGrid::SharedPtr> neighbor_maps_;
-  std::map<std::string,
-    rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr> neighbor_map_subs_;
-
-  rclcpp::Subscription<swarm_nav_msgs::msg::NeighborStateArray>::SharedPtr neighbor_sub_;
-  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr own_map_sub_;
+  
+  std::mutex map_mutex_;
+  std::map<std::string, nav_msgs::msg::OccupancyGrid::SharedPtr> robot_maps_;
+  std::map<std::string, rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr> map_subs_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr global_map_pub_;
 };
 

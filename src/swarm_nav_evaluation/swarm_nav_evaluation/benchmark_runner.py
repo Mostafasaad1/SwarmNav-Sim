@@ -78,8 +78,8 @@ class BenchmarkRunner:
             param_name = sweep['parameter']
             for value in sweep['values']:
                 scenario = deepcopy(base)
-                scenario['id'] = f'{base['id']}_{param_name}={value}'
-                scenario['name'] = f'{base['name']} ({param_name}={value})'
+                scenario['id'] = f"{base['id']}_{param_name}={value}"
+                scenario['name'] = f"{base['name']} ({param_name}={value})"
                 if 'parameters' not in scenario:
                     scenario['parameters'] = {}
                 scenario['parameters'][param_name] = value
@@ -110,7 +110,7 @@ class BenchmarkRunner:
 
         sweep_dir = os.path.join(self.output_dir, 'sweep')
         report_paths = generate_sweep_report(self.sweep_results, sweep_dir)
-        print(f"Sweep report saved: {report_paths.get('csv', 'N/A')}')
+        print(f"Sweep report saved: {report_paths.get('csv', 'N/A')}")
 
         return self.sweep_results
 
@@ -130,8 +130,8 @@ class BenchmarkRunner:
             # Fail-fast: abort on crash/timeout
             if result.get('status') in ('CRASH', 'TIMEOUT'):
                 print(
-                    f'FAIL-FAST: Scenario {scenario['id']} '
-                    f"{result['status']}. Aborting suite.'
+                    f"FAIL-FAST: Scenario {scenario['id']} "
+                    f"{result['status']}. Aborting suite."
                 )
                 break
 
@@ -260,7 +260,7 @@ class BenchmarkRunner:
             f'num_robots:={num_robots}',
             f'duration:={timeout_sec}',
             f'output_dir:={scenario_output_dir}',
-            f'gui:={'true' if self.gui else 'false'}',
+            f"gui:={'true' if self.gui else 'false'}",
         ]
 
         for key, value in params.items():
