@@ -1,0 +1,264 @@
+// dynamic_obstacle_layer.cpp
+// Implementation of custom Nav2 costmap layer for dynamic obstacle avoidance
+
+#include "dynamic_obstacle_layer.hpp"
+#include <nav2_costmap_2d/costmap_math.hpp>
+#include <pluginlib/class_list_macros.hpp>
+#include "swarm_nav_msgs/msg/obstacle_array.hpp"
+
+
+PLUGINLIB_EXPORT_CLASS(swarm_nav_navigation::DynamicObstacleLayer, nav2_costmap_2d::Layer)
+
+namespace swarm_nav_navigation
+{
+
+DynamicObstacleLayer::DynamicObstacleLayer()
+: inflation_radius_(1.0),
+  prediction_time_(2.0),
+  robot_radius_(0.25),
+  enabled_(true)
+{
+}
+
+DynamicObstacleLayer::~DynamicObstacleLayer()
+{
+}
+
+void DynamicObstacleLayer::onInitialize()
+{
+  auto node = node_.lock();
+  if (!node) {
+    throw std::runtime_error("Unable to lock node!");
+  }
+
+  // Declare parameters
+  declareParameter("enabled", rclcpp::ParameterValue(true));
+  declareParameter("inflation_radius", rclcpp::ParameterValue(1.0));
+  declareParameter("prediction_time", rclcpp::ParameterValue(2.0));
+  declareParameter("robot_radius", rclcpp::ParameterValue(0.25));
+
+  // Get parameters
+  node->get_parameter(name_ + "." + "enabled", enabled_);
+  node->get_parameter(name_ + "." + "inflation_radius", inflation_radius_);
+  node->get_parameter(name_ + "." + "prediction_time", prediction_time_);
+  node->get_parameter(name_ + "." + "robot_radius", robot_radius_);
+
+  RCLCPP_INFO(
+    node->get_logger(),
+    "DynamicObstacleLayer initialized: inflation_radius=%.2f, prediction_time=%.2f",
+    inflation_radius_, prediction_time_);
+
+  // Subscribe to tracked obstacles
+  obstacle_sub_ = node->create_subscription<swarm_nav_msgs::msg::ObstacleArray>(
+    "/swarm/tracked_obstacles",
+    rclcpp::SensorDataQoS(),
+    [this](swarm_nav_msgs::msg::ObstacleArray::SharedPtr msg) {
+      this->obstacleCallback(msg);
+    });
+
+  current_ = true;
+}
+
+void DynamicObstacleLayer::obstacleCallback(
+  swarm_nav_msgs::msg::ObstacleArray::SharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock(obstacles_mutex_);
+
+  auto node = node_.lock();
+  rclcpp::Time now = node->now();
+
+  // Clear old obstacles and update with new data
+  obstacles_.clear();
+
+  for (const auto & obs_msg : msg->obstacles) {
+    DynamicObstacle obstacle;
+    obstacle.id = obs_msg.id;
+    obstacle.pose = obs_msg.pose;
+    obstacle.velocity = obs_msg.velocity;
+    obstacle.radius = obs_msg.radius;
+    obstacle.classification = obs_msg.classification;
+    obstacle.last_seen = now;
+
+    obstacles_.push_back(obstacle);
+  }
+
+  RCLCPP_DEBUG(
+    node_.lock()->get_logger(),
+    "Received %zu obstacles", obstacles_.size());
+}
+
+void DynamicObstacleLayer::updateBounds(
+  double robot_x, double robot_y, double robot_yaw,
+  double * min_x, double * min_y, double * max_x, double * max_y)
+{
+  if (!enabled_) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(obstacles_mutex_);
+
+  // Expand bounds to include all obstacles with inflation
+  for (const auto & obstacle : obstacles_) {
+    // Predict future position based on velocity
+    double pred_x = obstacle.pose.position.x +
+      obstacle.velocity.linear.x * prediction_time_;
+    double pred_y = obstacle.pose.position.y +
+      obstacle.velocity.linear.y * prediction_time_;
+
+    double inflate = inflation_radius_ + obstacle.radius;
+
+    *min_x = std::min(*min_x, pred_x - inflate);
+    *min_y = std::min(*min_y, pred_y - inflate);
+    *max_x = std::max(*max_x, pred_x + inflate);
+    *max_y = std::max(*max_y, pred_y + inflate);
+  }
+}
+
+void DynamicObstacleLayer::updateCosts(
+  nav2_costmap_2d::Costmap2D & master_grid,
+  int min_i, int min_j, int max_i, int max_j)
+{
+  if (!enabled_) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(obstacles_mutex_);
+
+  auto node = node_.lock();
+  rclcpp::Time now = node->now();
+
+  // Inflate each obstacle into the costmap with classification-based decay
+  for (const auto & obstacle : obstacles_) {
+    // Calculate time since last seen
+    double time_since_seen = (now - obstacle.last_seen).seconds();
+
+    // Apply classification-based decay
+    double decay_factor = 1.0;
+
+    if (obstacle.classification == 0) {
+      // STATIC: permanent, no decay
+      decay_factor = 1.0;
+    } else if (obstacle.classification == 1) {
+      // SEMI_DYNAMIC: linear decay over 5 seconds
+      double tau = 5.0;
+      decay_factor = std::max(0.0, 1.0 - time_since_seen / tau);
+    } else if (obstacle.classification == 2) {
+      // DYNAMIC: exponential decay over 2 seconds
+      double tau = 2.0;
+      decay_factor = std::exp(-time_since_seen / tau);
+    }
+
+    if (decay_factor > 0.01) {
+      inflateObstacle(master_grid, obstacle, prediction_time_, decay_factor);
+    }
+  }
+}
+
+void DynamicObstacleLayer::inflateObstacle(
+  nav2_costmap_2d::Costmap2D & master_grid,
+  const DynamicObstacle & obstacle,
+  double prediction_time,
+  double decay_factor)
+{
+  // For DYNAMIC obstacles, inflate along predicted trajectory
+  if (obstacle.classification == 2) {
+    // Sample multiple points along trajectory over the prediction horizon
+    int num_samples = 5;
+    double horizon = prediction_time;
+
+    for (int i = 0; i <= num_samples; ++i) {
+      double t = (i * horizon) / num_samples;
+      double pred_x = obstacle.pose.position.x + obstacle.velocity.linear.x * t;
+      double pred_y = obstacle.pose.position.y + obstacle.velocity.linear.y * t;
+
+      inflatePoint(master_grid, pred_x, pred_y, obstacle.radius, decay_factor);
+    }
+  } else {
+    // For STATIC and SEMI_DYNAMIC, inflate at current position
+    inflatePoint(
+      master_grid, obstacle.pose.position.x, obstacle.pose.position.y,
+      obstacle.radius, decay_factor);
+  }
+}
+
+void DynamicObstacleLayer::inflatePoint(
+  nav2_costmap_2d::Costmap2D & master_grid,
+  double world_x, double world_y,
+  double obstacle_radius,
+  double decay_factor)
+{
+  // Convert to map coordinates
+  unsigned int mx, my;
+  if (!master_grid.worldToMap(world_x, world_y, mx, my)) {
+    return;
+  }
+
+  // Gaussian inflation: sigma = obstacle_radius + robot_radius + 0.2
+  double sigma = obstacle_radius + robot_radius_ + 0.2;
+  double sigma_sq = sigma * sigma;
+
+  // Calculate inflation radius in cells
+  double total_radius = inflation_radius_ + obstacle_radius;
+  unsigned int cell_radius = static_cast<unsigned int>(
+    total_radius / master_grid.getResolution());
+
+  // Inflate with Gaussian falloff: C = C_max * exp(-d² / (2*σ²))
+  for (int dy = -static_cast<int>(cell_radius);
+    dy <= static_cast<int>(cell_radius); ++dy)
+  {
+    for (int dx = -static_cast<int>(cell_radius);
+      dx <= static_cast<int>(cell_radius); ++dx)
+    {
+
+      unsigned int cx = mx + dx;
+      unsigned int cy = my + dy;
+
+      if (cx >= master_grid.getSizeInCellsX() ||
+        cy >= master_grid.getSizeInCellsY())
+      {
+        continue;
+      }
+
+      double dist = std::sqrt(dx * dx + dy * dy) * master_grid.getResolution();
+
+      if (dist <= total_radius) {
+        unsigned char cost;
+
+        if (dist <= obstacle_radius) {
+          // Inside obstacle: LETHAL
+          cost = nav2_costmap_2d::LETHAL_OBSTACLE;
+        } else {
+          // Gaussian falloff
+          double gaussian = std::exp(-(dist * dist) / (2.0 * sigma_sq));
+          cost = static_cast<unsigned char>(
+            nav2_costmap_2d::LETHAL_OBSTACLE * gaussian * decay_factor);
+        }
+
+        unsigned char old_cost = master_grid.getCost(cx, cy);
+        if (old_cost == nav2_costmap_2d::NO_INFORMATION) {
+          master_grid.setCost(cx, cy, cost);
+        } else {
+          master_grid.setCost(cx, cy, std::max(old_cost, cost));
+        }
+      }
+    }
+  }
+}
+
+void DynamicObstacleLayer::reset()
+{
+  std::lock_guard<std::mutex> lock(obstacles_mutex_);
+  obstacles_.clear();
+}
+
+void DynamicObstacleLayer::activate()
+{
+  enabled_ = true;
+}
+
+void DynamicObstacleLayer::deactivate()
+{
+  enabled_ = false;
+}
+
+} // namespace swarm_nav_navigation

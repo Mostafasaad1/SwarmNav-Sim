@@ -1,0 +1,44 @@
+# ROS 2 / Colcon
+install/
+build/
+log/
+*.pyc
+__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+*.egg-info/
+dist/
+*.egg
+.pytest_cache/
+
+# C++
+*.o
+*.so
+*.a
+*.out
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# ROS specific
+COLCON_IGNORE
+*.bag
+*.db3
+
+archive
