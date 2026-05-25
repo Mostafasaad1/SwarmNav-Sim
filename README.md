@@ -8,8 +8,8 @@
   
   <br />
 
-  <!-- 🎥 REPLACE THE LINK BELOW WITH YOUR DEMO VIDEO OR GIF -->
-  <img src="https://via.placeholder.com/800x450?text=Insert+SwarmNav-Sim+Demo+Video/GIF+Here" alt="SwarmNav-Sim Demo" width="800"/>
+  <!-- 🎥 DEMO VIDEO OR GIF -->
+  <img src="Media/demo.gif" alt="SwarmNav-Sim Demo" width="800"/>
 </div>
 
 <hr />
