@@ -82,17 +82,6 @@ By default, this will spawn 3 robots. You can change the number of robots (up to
 
 ---
 
-## 📷 Media Gallery
-
-*(Add more screenshots of RViz, Gazebo, or node graphs here)*
-
-<p align="center">
-  <img src="https://via.placeholder.com/400x250?text=RViz+Map+Merging+Screenshot" width="45%" />
-  <img src="https://via.placeholder.com/400x250?text=Gazebo+Warehouse+Screenshot" width="45%" />
-</p>
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
