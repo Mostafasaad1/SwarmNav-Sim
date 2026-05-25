@@ -75,7 +75,7 @@ Source your workspace and launch the core bringup file:
 
 ```bash
 source install/setup.bash
-ros2 launch swarm_nav_bringup swarm.launch.py robots:=3
+ros2 launch swarm_nav_bringup swarm.launch.py robots:=3 use_rviz:=true gui:=true
 ```
 
 By default, this will spawn 3 robots. You can change the number of robots (up to 5) by tweaking the `robots` argument.
