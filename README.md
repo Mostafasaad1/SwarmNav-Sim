@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>SwarmNav-Sim 🤖🤖🤖</h1>
+  <h1>SwarmNav-Sim</h1>
   <p><strong>A ROS 2 Jazzy multi-robot warehouse exploration & navigation simulation</strong></p>
 
   [![ROS 2](https://img.shields.io/badge/ROS_2-Jazzy-blue.svg)](https://docs.ros.org/en/jazzy/)
@@ -14,7 +14,7 @@
 
 <hr />
 
-## 📖 Overview
+## Overview
 
 **SwarmNav-Sim** is an advanced multi-robot simulation environment built on ROS 2 Jazzy and Gazebo Fortress. It orchestrates a swarm of differential drive robots (3 to 5 units) performing autonomous exploration and navigation within a dynamic 40m × 60m warehouse environment. 
 
@@ -23,7 +23,7 @@ The system leverages state-of-the-art decentralized coordination:
 * **Auction-based Task Allocation**: A decentralized bidding system assigns frontiers to the most suitable robots based on distance and traversal cost.
 * **ORCA Collision Avoidance**: Real-time velocity filtering ensures safe, collision-free maneuvers even among dense clusters of robots and dynamic obstacles.
 
-## ✨ Features
+## Features
 
 - **ROS 2 Lifecycle Nodes**: Robust state management for system bringup and teardown.
 - **BehaviorTree.CPP (BT) Integration**: Modular task execution and behavioral logic for individual robots.
@@ -33,7 +33,7 @@ The system leverages state-of-the-art decentralized coordination:
 
 ---
 
-## 🛠️ Architecture
+## Architecture
 
 The system is separated into highly cohesive ROS 2 packages:
 
@@ -47,7 +47,7 @@ The system is separated into highly cohesive ROS 2 packages:
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### Prerequisites
 
