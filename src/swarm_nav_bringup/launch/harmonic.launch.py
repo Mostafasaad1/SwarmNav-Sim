@@ -15,6 +15,7 @@ from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
+    TimerAction,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -170,5 +171,9 @@ def generate_launch_description():
         gui_arg,
         gz_sim,
         clock_bridge,
-        OpaqueFunction(function=spawn_robots),
+        # Delay robot spawning to give Gazebo time to load the world
+        TimerAction(
+            period=5.0,
+            actions=[OpaqueFunction(function=spawn_robots)]
+        ),
     ])

@@ -117,7 +117,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                 'use_sim_time': True,
                 'robot_id': robot_namespace,
                 'min_frontier_size': 10,
-                'frontier_travel_point_distance': 1.0
+                'frontier_travel_point_distance': 2.0
             }],
             output='screen'
         ),
@@ -131,7 +131,7 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
                 'use_sim_time': True,
                 'robot_id': robot_namespace,
                 'bid_timeout_ms': 500,
-                'nominal_speed': 0.5
+                'nominal_speed': 2.0
             }],
             output='screen'
         ),
@@ -206,6 +206,9 @@ def generate_robot_launch(robot_id, x_pos, y_pos, yaw):
             namespace='',
             output='screen',
             parameters=[configured_params],
+            remappings=[
+                ('cmd_vel', 'cmd_vel_nav2'),
+            ],
         ),
 
         # Nav2 BT Navigator

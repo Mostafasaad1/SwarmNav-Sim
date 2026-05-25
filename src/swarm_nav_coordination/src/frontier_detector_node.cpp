@@ -13,17 +13,22 @@
 // limitations under the License.
 
 // frontier_detector_node.cpp
-// Detects unexplored frontiers in the occupancy grid map
+// Detects unexplored frontiers in the occupancy grid map.
+// Large frontier clusters (rings) are split into angular sectors so that
+// robots get meaningful navigation targets at the map boundary.
 
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 
 #include <string>
 #include <vector>
 #include <queue>
 #include <cmath>
+#include <algorithm>
 
 #include "swarm_nav_msgs/msg/frontier.hpp"
 #include "swarm_nav_msgs/msg/frontier_array.hpp"
@@ -47,14 +52,18 @@ public:
   {
     // Declare parameters
     this->declare_parameter("robot_id", "robot_0");
-    this->declare_parameter("min_frontier_size", 10);
-    this->declare_parameter("frontier_travel_point_distance", 1.0);
+    this->declare_parameter("min_frontier_size", 5);
+    this->declare_parameter("frontier_travel_point_distance", 2.0);  // look-ahead beyond frontier
     if (!this->has_parameter("use_sim_time")) { this->declare_parameter("use_sim_time", true); }
 
     // Get parameters
     robot_id_ = this->get_parameter("robot_id").as_string();
     min_frontier_size_ = this->get_parameter("min_frontier_size").as_int();
     frontier_travel_distance_ = this->get_parameter("frontier_travel_point_distance").as_double();
+
+    // TF for robot pose lookup (used for look-ahead offset direction)
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     RCLCPP_INFO(this->get_logger(), "Frontier Detector initialized for %s", robot_id_.c_str());
 
@@ -97,7 +106,21 @@ private:
     // Store latest map for utility calculation
     latest_map_ = map;
 
-    // Detect frontiers using wavefront algorithm
+    // Get robot position in local map frame (for look-ahead direction)
+    robot_x_in_map_ = 0.0;
+    robot_y_in_map_ = 0.0;
+    try {
+      auto tf = tf_buffer_->lookupTransform(
+        robot_id_ + "/map",
+        robot_id_ + "/base_footprint",
+        tf2::TimePointZero);
+      robot_x_in_map_ = tf.transform.translation.x;
+      robot_y_in_map_ = tf.transform.translation.y;
+    } catch (const std::exception & e) {
+      RCLCPP_DEBUG(this->get_logger(), "TF lookup failed, using (0,0): %s", e.what());
+    }
+
+    // Detect frontiers
     std::vector<FrontierData> frontiers = detectFrontiers(map);
 
     RCLCPP_INFO(this->get_logger(), "Detected %zu frontiers", frontiers.size());
@@ -110,39 +133,103 @@ private:
     publishMarkers(frontiers);
   }
 
+  // ---------------------------------------------------------------
+  // Core frontier detection with angular sector splitting
+  // ---------------------------------------------------------------
   std::vector<FrontierData> detectFrontiers(const nav_msgs::msg::OccupancyGrid::SharedPtr map)
   {
     std::vector<FrontierData> frontiers;
 
-    int width = map->info.width;
+    int width  = map->info.width;
     int height = map->info.height;
     float resolution = map->info.resolution;
+    auto origin = map->info.origin.position;
 
-    // Create visited map
+    // --- Step 1: Find connected frontier clusters via BFS ---
     std::vector<bool> visited(width * height, false);
 
-    // Scan for frontier cells (free cells adjacent to unknown cells)
+    // Each raw cluster is just a list of grid cells
+    std::vector<std::vector<std::pair<int, int>>> raw_clusters;
+
     for (int y = 1; y < height - 1; ++y) {
       for (int x = 1; x < width - 1; ++x) {
         int idx = y * width + x;
+        if (visited[idx]) { continue; }
+        if (!isFrontierCell(map, x, y)) { continue; }
 
-        // Skip if already visited
-        if (visited[idx]) {continue;}
+        // BFS to collect all connected frontier cells
+        std::vector<std::pair<int, int>> cluster_cells;
+        std::queue<std::pair<int, int>> bfs;
+        bfs.push({x, y});
+        visited[idx] = true;
 
-        // Check if this is a frontier cell
-        if (isFrontierCell(map, x, y)) {
-          // Perform BFS to find connected frontier region
-          FrontierData frontier = extractFrontier(map, x, y, visited);
+        while (!bfs.empty()) {
+          auto [cx, cy] = bfs.front();
+          bfs.pop();
+          cluster_cells.push_back({cx, cy});
 
-          // Only keep frontiers above minimum size
-          if (frontier.size >= min_frontier_size_) {
-            // Calculate utility (information gain estimate)
-            frontier.utility = calculateUtility(frontier);
+          for (auto [dx, dy] : std::vector<std::pair<int, int>>{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}) {
+            int nx = cx + dx;
+            int ny = cy + dy;
+            if (nx >= 1 && nx < width - 1 && ny >= 1 && ny < height - 1) {
+              int nidx = ny * width + nx;
+              if (!visited[nidx] && isFrontierCell(map, nx, ny)) {
+                visited[nidx] = true;
+                bfs.push({nx, ny});
+              }
+            }
+          }
+        }
 
-            // Generate unique ID
-            frontier.frontier_id = generateFrontierId();
+        if (cluster_cells.size() >= static_cast<size_t>(min_frontier_size_)) {
+          raw_clusters.push_back(std::move(cluster_cells));
+        }
 
-            frontiers.push_back(frontier);
+      }
+    }
+
+    // --- Step 2: Process clusters — split large ones by angular sector ---
+    constexpr int    NUM_SECTORS     = 8;
+    constexpr double SECTOR_SIZE     = 2.0 * M_PI / NUM_SECTORS;
+    constexpr size_t SPLIT_THRESHOLD = 40;  // clusters bigger than this get split
+
+    for (auto & cells : raw_clusters) {
+      if (cells.size() <= SPLIT_THRESHOLD) {
+        // Small / medium cluster — keep as a single frontier
+        FrontierData fd = buildFrontierFromCells(map, cells);
+        fd.utility    = calculateUtility(fd);
+        fd.frontier_id = generateFrontierId(fd.centroid);
+        frontiers.push_back(fd);
+      } else {
+        // Large cluster — likely a ring or long arc.  Split by angle.
+        // 1. Compute geometric center of the cluster
+        double cx_sum = 0.0, cy_sum = 0.0;
+        for (auto [gx, gy] : cells) {
+          cx_sum += origin.x + gx * resolution;
+          cy_sum += origin.y + gy * resolution;
+        }
+        double center_x = cx_sum / cells.size();
+        double center_y = cy_sum / cells.size();
+
+        // 2. Assign each cell to an angular sector
+        std::vector<std::vector<std::pair<int, int>>> sectors(NUM_SECTORS);
+        for (auto [gx, gy] : cells) {
+          double wx = origin.x + gx * resolution;
+          double wy = origin.y + gy * resolution;
+          double angle = std::atan2(wy - center_y, wx - center_x);
+          if (angle < 0) { angle += 2.0 * M_PI; }
+          int sector = std::min(static_cast<int>(angle / SECTOR_SIZE), NUM_SECTORS - 1);
+          sectors[sector].push_back({gx, gy});
+        }
+
+        // 3. Each non-trivial sector → its own frontier
+        int min_sector_size = std::max(3, min_frontier_size_ / 2);
+        for (auto & sector_cells : sectors) {
+          if (static_cast<int>(sector_cells.size()) >= min_sector_size) {
+            FrontierData fd = buildFrontierFromCells(map, sector_cells);
+            fd.utility    = calculateUtility(fd);
+            fd.frontier_id = generateFrontierId(fd.centroid);
+            frontiers.push_back(fd);
           }
         }
       }
@@ -151,18 +238,87 @@ private:
     return frontiers;
   }
 
+  // ---------------------------------------------------------------
+  // Build a FrontierData from a set of grid cells
+  // ---------------------------------------------------------------
+  FrontierData buildFrontierFromCells(
+    const nav_msgs::msg::OccupancyGrid::SharedPtr map,
+    const std::vector<std::pair<int, int>> & cells)
+  {
+    FrontierData frontier;
+    float resolution = map->info.resolution;
+    auto origin = map->info.origin.position;
+    int width  = map->info.width;
+    int height = static_cast<int>(map->info.height);
+
+    // 1. Compute centroid in world (map-frame) coordinates
+    double sum_x = 0.0, sum_y = 0.0;
+    for (auto [gx, gy] : cells) {
+      sum_x += origin.x + gx * resolution;
+      sum_y += origin.y + gy * resolution;
+    }
+    double centroid_x = sum_x / cells.size();
+    double centroid_y = sum_y / cells.size();
+
+    // 2. Check if centroid lands in free space; if not fall back to closest frontier cell
+    int check_gx = static_cast<int>((centroid_x - origin.x) / resolution);
+    int check_gy = static_cast<int>((centroid_y - origin.y) / resolution);
+    bool centroid_free = false;
+    if (check_gx >= 0 && check_gx < width && check_gy >= 0 && check_gy < height) {
+      centroid_free = (map->data[check_gy * width + check_gx] == 0);
+    }
+
+    if (!centroid_free) {
+      // Centroid is in unknown / occupied space.
+      // Fall back to the frontier cell closest to the computed centroid.
+      double best_dist = 1e9;
+      for (auto [gx, gy] : cells) {
+        double wx = origin.x + gx * resolution;
+        double wy = origin.y + gy * resolution;
+        double dist = std::hypot(wx - centroid_x, wy - centroid_y);
+        if (dist < best_dist) {
+          best_dist  = dist;
+          centroid_x = wx;
+          centroid_y = wy;
+        }
+      }
+    }
+
+    frontier.centroid.x = centroid_x;
+    frontier.centroid.y = centroid_y;
+    frontier.centroid.z = 0.0;
+    frontier.size = cells.size();
+
+    // 3. Apply look-ahead: push goal beyond frontier boundary into unexplored space.
+    //    Direction = centroid - robot_position; then offset by frontier_travel_distance_.
+    {
+      double dx = frontier.centroid.x - robot_x_in_map_;
+      double dy = frontier.centroid.y - robot_y_in_map_;
+      double dist = std::sqrt(dx * dx + dy * dy);
+      if (dist > 0.01) {
+        frontier.centroid.x += (dx / dist) * frontier_travel_distance_;
+        frontier.centroid.y += (dy / dist) * frontier_travel_distance_;
+      }
+    }
+
+    return frontier;
+  }
+
+  // ---------------------------------------------------------------
+  // Helpers (unchanged logic)
+  // ---------------------------------------------------------------
   bool isFrontierCell(const nav_msgs::msg::OccupancyGrid::SharedPtr map, int x, int y)
   {
     int width = map->info.width;
     int idx = y * width + x;
 
     // Cell must be free (0)
-    if (map->data[idx] != 0) {return false;}
+    if (map->data[idx] != 0) { return false; }
 
     // Check if any neighbor is unknown (-1)
     for (int dy = -1; dy <= 1; ++dy) {
       for (int dx = -1; dx <= 1; ++dx) {
-        if (dx == 0 && dy == 0) {continue;}
+        if (dx == 0 && dy == 0) { continue; }
 
         int nx = x + dx;
         int ny = y + dy;
@@ -177,123 +333,37 @@ private:
     return false;
   }
 
-  FrontierData extractFrontier(
-    const nav_msgs::msg::OccupancyGrid::SharedPtr map,
-    int start_x, int start_y,
-    std::vector<bool> & visited)
-  {
-    FrontierData frontier;
-    std::queue<std::pair<int, int>> queue;
-    std::vector<std::pair<int, int>> cells;
-
-    int width = map->info.width;
-    float resolution = map->info.resolution;
-    auto origin = map->info.origin.position;
-
-    queue.push({start_x, start_y});
-    visited[start_y * width + start_x] = true;
-
-    // BFS to find all connected frontier cells
-    while (!queue.empty()) {
-      auto [x, y] = queue.front();
-      queue.pop();
-
-      cells.push_back({x, y});
-
-      // Check 4-connected neighbors
-      for (auto [dx, dy] : std::vector<std::pair<int, int>>{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}) {
-        int nx = x + dx;
-        int ny = y + dy;
-        int nidx = ny * width + nx;
-
-        if (nx >= 0 && nx < width && ny >= 0 && ny < static_cast<int>(map->info.height) &&
-          !visited[nidx] && isFrontierCell(map, nx, ny))
-        {
-          visited[nidx] = true;
-          queue.push({nx, ny});
-        }
-      }
-    }
-
-    // Calculate centroid
-    float sum_x = 0, sum_y = 0;
-    for (auto [x, y] : cells) {
-      sum_x += x;
-      sum_y += y;
-    }
-
-    // Calculate direction towards explored (free) space
-    double dx_sum = 0.0;
-    double dy_sum = 0.0;
-    for (auto [x, y] : cells) {
-      for (int dy_offset = -1; dy_offset <= 1; ++dy_offset) {
-        for (int dx_offset = -1; dx_offset <= 1; ++dx_offset) {
-          if (dx_offset == 0 && dy_offset == 0) {continue;}
-          int nx = x + dx_offset;
-          int ny = y + dy_offset;
-          if (nx >= 0 && nx < width && ny >= 0 && ny < static_cast<int>(map->info.height)) {
-            int nidx = ny * width + nx;
-            if (map->data[nidx] == 0) { // Free/explored cell
-              dx_sum += dx_offset;
-              dy_sum += dy_offset;
-            }
-          }
-        }
-      }
-    }
-
-    double len = std::sqrt(dx_sum * dx_sum + dy_sum * dy_sum);
-    double ux = 0.0;
-    double uy = 0.0;
-    if (len > 1e-5) {
-      ux = dx_sum / len;
-      uy = dy_sum / len;
-    }
-
-    frontier.centroid.x = origin.x + (sum_x / cells.size()) * resolution + ux * frontier_travel_distance_;
-    frontier.centroid.y = origin.y + (sum_y / cells.size()) * resolution + uy * frontier_travel_distance_;
-    frontier.centroid.z = 0.0;
-    frontier.size = cells.size();
-
-    return frontier;
-  }
-
   float calculateUtility(const FrontierData & frontier)
   {
-    // Spec formula: utility = size * 0.1 + info_gain * 0.5
-    // info_gain = count of unknown cells within 3m radius of centroid
+    // utility = size * 0.1 + info_gain * 0.5
+    // info_gain = count of unknown cells within 3 m radius of centroid
 
     float size_component = frontier.size * 0.1f;
     float info_gain = 0.0f;
 
     if (latest_map_) {
-      // Calculate information gain: count unknown cells within 3m radius
-      float radius = 3.0f; // meters
+      float radius = 3.0f;
       float resolution = latest_map_->info.resolution;
       auto origin = latest_map_->info.origin.position;
-      int width = latest_map_->info.width;
+      int width  = latest_map_->info.width;
       int height = latest_map_->info.height;
 
-      // Convert centroid to grid coordinates
       int center_x = static_cast<int>((frontier.centroid.x - origin.x) / resolution);
       int center_y = static_cast<int>((frontier.centroid.y - origin.y) / resolution);
 
-      // Search within radius
       int radius_cells = static_cast<int>(radius / resolution);
       int unknown_count = 0;
 
       for (int dy = -radius_cells; dy <= radius_cells; ++dy) {
         for (int dx = -radius_cells; dx <= radius_cells; ++dx) {
-          // Check if within circular radius
           float dist = std::sqrt(dx * dx + dy * dy) * resolution;
-          if (dist > radius) {continue;}
+          if (dist > radius) { continue; }
 
-          int x = center_x + dx;
-          int y = center_y + dy;
+          int gx = center_x + dx;
+          int gy = center_y + dy;
 
-          // Check bounds
-          if (x >= 0 && x < width && y >= 0 && y < height) {
-            int idx = y * width + x;
+          if (gx >= 0 && gx < width && gy >= 0 && gy < height) {
+            int idx = gy * width + gx;
             if (latest_map_->data[idx] == -1) {
               unknown_count++;
             }
@@ -304,14 +374,15 @@ private:
       info_gain = static_cast<float>(unknown_count);
     }
 
-    float utility = size_component + info_gain * 0.5f;
-    return utility;
+    return size_component + info_gain * 0.5f;
   }
 
-  std::string generateFrontierId()
+  std::string generateFrontierId(const geometry_msgs::msg::Point & centroid)
   {
-    static int counter = 0;
-    return robot_id_ + "_frontier_" + std::to_string(counter++);
+    // Quantize position to 1m grid for stable IDs
+    int grid_x = static_cast<int>(std::round(centroid.x));
+    int grid_y = static_cast<int>(std::round(centroid.y));
+    return robot_id_ + "_frontier_" + std::to_string(grid_x) + "_" + std::to_string(grid_y);
   }
 
   void publishFrontiers(const std::vector<FrontierData> & frontiers)
@@ -374,8 +445,14 @@ private:
   int min_frontier_size_;
   double frontier_travel_distance_;
 
+  double robot_x_in_map_{0.0};
+  double robot_y_in_map_{0.0};
+
   nav_msgs::msg::OccupancyGrid::SharedPtr latest_map_;
   std::vector<FrontierData> latest_frontiers_;
+
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
   rclcpp::Publisher<swarm_nav_msgs::msg::FrontierArray>::SharedPtr frontier_pub_;

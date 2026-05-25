@@ -1,18 +1,11 @@
 Panels:
   - Class: rviz_common/Displays
-    Help Height: 78
+    Help Height: 87
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /Global Options1
-        - /Status1
-        - /Scan_01
-        - /Scan_11
-        - /Scan_21
-        - /Pose1
-        - /Pose1/Topic1
+      Expanded: ~
       Splitter Ratio: 0.5
-    Tree Height: 416
+    Tree Height: 377
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Views
@@ -172,7 +165,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Map Robot_0
       Topic:
         Depth: 5
@@ -188,7 +181,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /robot_0/map_updates
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.5
       Binary representation: false
       Binary threshold: 100
@@ -622,46 +615,6 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /robot_2/frontier_markers
       Value: true
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz_default_plugins/Pose
-      Color: 255; 25; 0
-      Enabled: false
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /robot_0/goal_pose
-      Value: false
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz_default_plugins/Pose
-      Color: 255; 25; 0
-      Enabled: false
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /robot_0/goal_pose
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 30; 30; 30
@@ -721,37 +674,37 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 19.453731536865234
+      Distance: 69.90869140625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -6.3202433586120605
-        Y: -8.15829849243164
-        Z: 8.55595588684082
+        X: -8.884647369384766
+        Y: 3.631126880645752
+        Z: -0.3333902657032013
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8753982782363892
+      Pitch: 0.6403985619544983
       Target Frame: map
       Value: Orbit (rviz_default_plugins)
-      Yaw: 1.0253980159759521
+      Yaw: 0.9653980731964111
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1014
+  Height: 1008
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000019d0000039afc0200000003fb000000100044006900730070006c006100790073010000003e0000022c000000ca00fffffffb0000001200530065006c0065006300740069006f006e00000001ef000000ce0000005c00fffffffb0000000a00560069006500770073010000027000000168000000a600ffffff0000059b0000039a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000001000000000000019d0000037dfc0200000003fb000000100044006900730070006c006100790073010000004c0000021d000000fd01000003fb0000001200530065006c0065006300740069006f006e00000001ef000000ce0000007901000003fb0000000a00560069006500770073010000026a0000015f000000d301000003000005a00000037d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Views:
     collapsed: false
   Width: 1854
   X: 66
-  Y: 29
+  Y: 0

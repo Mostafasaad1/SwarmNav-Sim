@@ -28,7 +28,7 @@ ament_target_dependencies(auctioneer_node
 
 add_executable(frontier_detector_node src/frontier_detector_node.cpp)
 ament_target_dependencies(frontier_detector_node
-  rclcpp swarm_nav_msgs nav_msgs geometry_msgs visualization_msgs
+  rclcpp swarm_nav_msgs nav_msgs geometry_msgs visualization_msgs tf2_ros
 )
 
 # BehaviorTree plugins

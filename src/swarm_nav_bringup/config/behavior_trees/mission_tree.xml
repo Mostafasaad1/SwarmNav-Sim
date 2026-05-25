@@ -16,24 +16,26 @@
             <MapCoverageCheck coverage_threshold="0.95" name="CheckCoverage"/>
           </Inverter>
           
-          <!-- Detect frontiers -->
-          <FrontierDetectorBT name="DetectFrontiers" frontier_count="{frontier_count}"/>
-          
-          <!-- Run Vickrey auction for task allocation -->
-          <!-- The assigned_frontier is now a geometry_msgs::msg::PoseStamped -->
-          <RunAuctionBT name="RunAuction" 
-                        frontier_count="{frontier_count}"
-                        assigned_frontier="{assigned_frontier}"/>
-          
-          <!-- Navigate to assigned frontier -->
-          <Fallback name="NavigateToFrontier">
-            <!-- Call Nav2 action to navigate to frontier -->
-            <NavigateToPose goal="{assigned_frontier}" 
-                           server_name="navigate_to_pose"
-                           name="NavigateAction"/>
+          <!-- Safely try to detect, auction, and navigate -->
+          <Fallback name="SafeExplorationStep">
+            <Sequence name="DoExploration">
+              <!-- Detect frontiers -->
+              <FrontierDetectorBT name="DetectFrontiers" frontier_count="{frontier_count}"/>
+              
+              <!-- Run Vickrey auction for task allocation -->
+              <RunAuctionBT name="RunAuction" 
+                            frontier_count="{frontier_count}"
+                            assigned_frontier="{assigned_frontier}"/>
+              
+              <!-- Navigate to assigned frontier -->
+              <NavigateToPose goal="{assigned_frontier}" 
+                             server_name="navigate_to_pose"
+                             name="NavigateAction"/>
+            </Sequence>
             
-            <!-- If navigation fails, continue to next cycle -->
-            <AlwaysSuccess name="ContinueOnFailure"/>
+            <!-- If any step fails (e.g. no frontiers, auction timeout, or nav failure), 
+                 we fall back here so the main loop continues -->
+            <AlwaysSuccess name="IgnoreTransientFailures"/>
           </Fallback>
           
           <!-- Small delay before next cycle -->

@@ -26,6 +26,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
+#include <algorithm>
 #include <mutex>
 #include <chrono>
 #include <random>
@@ -89,7 +91,7 @@ public:
       [this](swarm_nav_msgs::msg::FrontierArray::SharedPtr msg) {this->frontierCallback(msg);});
 
     auction_announce_sub_ = this->create_subscription<swarm_nav_msgs::msg::AuctionAnnounce>(
-      "/swarm/auction/announce", rclcpp::QoS(1).best_effort(),
+      "/swarm/auction/announce", rclcpp::QoS(10).reliable(),
       [this](swarm_nav_msgs::msg::AuctionAnnounce::SharedPtr msg) {
         this->auctionAnnounceCallback(msg);
       });
@@ -112,7 +114,7 @@ public:
 
     // Publishers
     announce_pub_ = this->create_publisher<swarm_nav_msgs::msg::AuctionAnnounce>(
-      "/swarm/auction/announce", rclcpp::QoS(1).best_effort()
+      "/swarm/auction/announce", rclcpp::QoS(10).reliable()
     );
 
     bid_pub_ = this->create_publisher<swarm_nav_msgs::msg::AuctionBid>(
@@ -329,58 +331,63 @@ private:
   {
     RCLCPP_INFO(this->get_logger(), "Resolving auction with %zu bids", received_bids_.size());
 
-    // Group bids by frontier
-    std::map<std::string, std::vector<Bid>> bids_by_frontier;
-    for (const auto & bid : received_bids_) {
-      bids_by_frontier[bid.frontier_id].push_back(bid);
+    // ---------------------------------------------------------------
+    // Greedy 1-to-1 assignment: each robot gets at most ONE frontier,
+    // each frontier goes to at most ONE robot.
+    // Algorithm: sort all bids by cost ascending, then greedily assign.
+    // ---------------------------------------------------------------
+
+    // Sort all bids by cost ascending (ties broken by robot_id lexicographically)
+    std::vector<Bid> sorted_bids = received_bids_;
+    std::sort(sorted_bids.begin(), sorted_bids.end(),
+      [](const Bid & a, const Bid & b) {
+        if (a.cost != b.cost) { return a.cost < b.cost; }
+        return a.robot_id < b.robot_id;
+      });
+
+    // Track which robots and frontiers have been assigned
+    std::set<std::string> assigned_robots;
+    std::set<std::string> assigned_frontiers;
+
+    // Compute second-price for each frontier (Vickrey pricing)
+    // Group by frontier first to find the runner-up bid
+    std::map<std::string, float> second_price_map;
+    std::map<std::string, float> winner_price_map;
+    {
+      std::map<std::string, std::vector<float>> costs_by_frontier;
+      for (const auto & bid : received_bids_) {
+        costs_by_frontier[bid.frontier_id].push_back(bid.cost);
+      }
+      for (auto & [fid, costs] : costs_by_frontier) {
+        std::sort(costs.begin(), costs.end());
+        winner_price_map[fid]  = costs[0];
+        second_price_map[fid]  = (costs.size() > 1) ? costs[1] : costs[0];
+      }
     }
 
-    // Apply Vickrey auction (second-price sealed-bid) for each frontier
-    for (const auto & [frontier_id, bids] : bids_by_frontier) {
-      if (bids.empty()) {continue;}
+    // Greedy assignment
+    for (const auto & bid : sorted_bids) {
+      if (assigned_robots.count(bid.robot_id)) { continue; }
+      if (assigned_frontiers.count(bid.frontier_id)) { continue; }
 
-      // Find lowest cost bid (winner) with tie-breaking by robot_id
-      const Bid * winner = nullptr;
-      for (const auto & bid : bids) {
-        if (!winner) {
-          winner = &bid;
-        } else {
-          if (bid.cost < winner->cost) {
-            winner = &bid;
-          } else if (bid.cost == winner->cost && bid.robot_id < winner->robot_id) {
-            winner = &bid;
-          }
-        }
-      }
+      assigned_robots.insert(bid.robot_id);
+      assigned_frontiers.insert(bid.frontier_id);
 
-      // Find second-lowest cost (price to pay)
-      float second_price = winner->cost;
-      const Bid * second_winner = nullptr;
-      for (const auto & bid : bids) {
-        if (&bid == winner) {continue;}
-        if (!second_winner) {
-          second_winner = &bid;
-        } else {
-          if (bid.cost < second_winner->cost) {
-            second_winner = &bid;
-          } else if (bid.cost == second_winner->cost && bid.robot_id < second_winner->robot_id) {
-            second_winner = &bid;
-          }
-        }
-      }
-      if (second_winner) {
-        second_price = second_winner->cost;
-      }
+      float pay_price = second_price_map.count(bid.frontier_id) ?
+        second_price_map[bid.frontier_id] : bid.cost;
 
       RCLCPP_INFO(
         this->get_logger(),
         "Frontier %s awarded to %s (bid: %.2f, pays: %.2f)",
-        frontier_id.c_str(), winner->robot_id.c_str(),
-        winner->cost, second_price);
+        bid.frontier_id.c_str(), bid.robot_id.c_str(),
+        bid.cost, pay_price);
 
-      // Publish AuctionResult message
-      publishResult(frontier_id, winner->robot_id, second_price);
+      publishResult(bid.frontier_id, bid.robot_id, pay_price);
     }
+
+    RCLCPP_INFO(
+      this->get_logger(), "Assignment complete: %zu robots assigned to %zu frontiers",
+      assigned_robots.size(), assigned_frontiers.size());
   }
 
   void publishResult(
@@ -443,8 +450,8 @@ private:
       const double density_radius = 5.0;
       int nearby_count = 0;
       for (const auto & [id, pose] : neighbor_poses_) {
-        double ndx = pose.position.x - frontier_centroid.x;
-        double ndy = pose.position.y - frontier_centroid.y;
+        double ndx = pose.position.x - global_centroid.x;
+        double ndy = pose.position.y - global_centroid.y;
         if (std::sqrt(ndx * ndx + ndy * ndy) < density_radius) {
           nearby_count++;
         }

@@ -115,6 +115,7 @@ public:
     getInput("frontier_count", frontier_count);
     RCLCPP_INFO(node_->get_logger(), "Starting auction for %d frontiers", frontier_count);
 
+    frontier_poses_.clear();
     received_result_ = false;
     auction_start_time_ = node_->now();
     return BT::NodeStatus::RUNNING;
